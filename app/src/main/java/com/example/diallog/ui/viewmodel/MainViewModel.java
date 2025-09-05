@@ -14,58 +14,67 @@ import java.util.concurrent.Executors;
 
 public final class MainViewModel extends ViewModel {
     private final CallRepository repo;
+    private final MutableLiveData<List<CallRecord>> items = new MutableLiveData<>(new ArrayList<>());
+    private final MutableLiveData<Boolean> loading = new MutableLiveData<>(false);
+    private final MutableLiveData<String> error = new MutableLiveData<>(null);
+
     private final ExecutorService io = Executors.newSingleThreadExecutor();
-
-    private final MutableLiveData<List<CallRecord>> _items = new MutableLiveData<>(new ArrayList<>());
-    private final MutableLiveData<Boolean> _loading = new MutableLiveData<>(false);
-    private final MutableLiveData<String> _error = new MutableLiveData<>(null);
-
     private int offset = 0;
     private int pageSize = 20;
+    private boolean hasMore = true;
 
 
     public MainViewModel(CallRepository repo) {
         this.repo = repo;
     }
 
-    public LiveData<List<CallRecord>> items() { return _items; }
-    public LiveData<Boolean> loading() { return _loading; }
-    public LiveData<String> error() { return _error; }
+    public LiveData<List<CallRecord>> items()   { return items; }
+    public LiveData<Boolean> loading()          { return loading; }
+    public LiveData<String> error()             { return error;  }
+    public boolean hasMore()                    { return hasMore; }
 
 
-    public void loadFirst(int pageSize) {
-        this.pageSize = pageSize;
-        offset = 0;
-        _items.postValue(new ArrayList<>());
-        loadMore();
-    }
-
-    public void loadMore() {
-        if (Boolean.TRUE.equals(_loading.getValue())) return;
-        _loading.postValue(true);
-        final int start = offset;
-        io.execute(() -> {
+    public void loadFirst(int limit) {
+        if (Boolean.TRUE.equals(loading.getValue())) return;
+        pageSize = Math.max(1, limit);
+        offset = 0; hasMore = true; error.postValue(null);
+        loading.postValue(true);
+        io.submit(() -> {
             try {
-                List<CallRecord> page = repo.getRecent(start, pageSize);
-                List<CallRecord> current = _items.getValue();
-                if (current == null) current = new ArrayList<>();
-                List<CallRecord> merged = new ArrayList<>(current);
-                merged.addAll(page);
-                _items.postValue(merged);
-                offset = start + page.size();
-                _error.postValue(null);
+                List<CallRecord> page = repo.getRecent(0, pageSize);
+                items.postValue(new ArrayList<>(page));
+                offset = page.size();
+                hasMore = page.size() == pageSize;
             } catch (Exception e) {
-                _error.postValue(e.getMessage());
+                error.postValue(e.getMessage());
             } finally {
-                _loading.postValue(false);
+                loading.postValue(false);
             }
         });
     }
 
-    public void refresh() { loadFirst(pageSize); }
-
-    @Override protected void onCleared() {
-        io.shutdownNow();
+    public void loadMore(){
+        if (Boolean.TRUE.equals(loading.getValue())) return;
+        if (!hasMore) return;
+        loading.postValue(true);
+        io.submit(() -> {
+            try {
+                List<CallRecord> page = repo.getRecent(offset, pageSize);
+                List<CallRecord> current = items.getValue();
+                if (current == null) current = new ArrayList<>();
+                current = new ArrayList<>(current);
+                current.addAll(page);
+                items.postValue(current);
+                offset += page.size();
+                hasMore = page.size() == pageSize;
+            } catch (Exception e) {
+                error.postValue(e.getMessage());
+            } finally {
+                loading.postValue(false);
+            }
+        });
     }
+
+    @Override protected void onCleared() { io.shutdownNow(); }
 
 }

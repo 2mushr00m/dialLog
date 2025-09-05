@@ -1,7 +1,5 @@
 package com.example.diallog.data.repository;
 
-import android.content.Context;
-import android.net.Uri;
 import java.util.*;
 
 import com.example.diallog.data.model.TranscriptSegment;
