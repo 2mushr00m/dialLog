@@ -61,7 +61,7 @@ public final class CallAdapter extends RecyclerView.Adapter<CallAdapter.CallView
 
         void bind(@NonNull CallRecord item) {
             tvTitle.setText(item.fileName);
-            tvMeta.setText(TimeFormatter.toMmSs(item.durationMs));
+            tvMeta.setText(TimeFormatter.toYmdHm(item.createdTime) + " · " + TimeFormatter.toMmSs(item.durationMs));
         }
     }
 

@@ -20,6 +20,7 @@ import com.example.diallog.data.repository.MockCallRepository;
 import com.example.diallog.ui.adapter.CallAdapter;
 import com.example.diallog.ui.viewmodel.MainVMFactory;
 import com.example.diallog.ui.viewmodel.MainViewModel;
+import com.example.diallog.utils.PermissionHelper;
 
 import java.io.File;
 import java.util.Objects;
@@ -35,6 +36,7 @@ public final class MainActivity extends AppCompatActivity {
         super.onCreate(b);
         setContentView(R.layout.activity_main);
 
+
 //        File recordings = new File(
 //                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
 //                "Recordings"
@@ -44,6 +46,14 @@ public final class MainActivity extends AppCompatActivity {
         MainViewModel vm = new ViewModelProvider(this, new MainVMFactory(repo)).get(MainViewModel.class);
 
 
+        if (!PermissionHelper.hasAudioRead(this)) {
+            PermissionHelper.requestAudioRead(this);
+            // 권한 승인 미허가 시, 애플리케이션 종료
+            repo = new MockCallRepository();
+        } else {
+            repo = new MockCallRepository();
+//            repo = new FileSystemCallRepository(recordingsDir);
+        }
 
 
         CallAdapter adapter = new CallAdapter(path -> {
