@@ -3,6 +3,9 @@ package com.example.diallog.ui.main;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
+import android.view.View;
+import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -48,14 +51,15 @@ public final class MainActivity extends AppCompatActivity {
             i.putExtra("audioPath", path);
             startActivity(i);
         });
+        ProgressBar progressBar = findViewById(R.id.pb_loading);
 
         recyclerView = findViewById(R.id.rv_calls);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
 
         vm.items().observe(this, adapter::submitList);
-//        vm.loading().observe(this, isLoading -> progressBar.setVisibility(Boolean.TRUE.equals(isLoading) ? View.VISIBLE : View.GONE));
-//        vm.error().observe(this, msg -> { if (msg != null) Toast.makeText(this, msg, Toast.LENGTH_SHORT).show(); });
+        vm.loading().observe(this, isLoading -> progressBar.setVisibility(Boolean.TRUE.equals(isLoading) ? View.VISIBLE : View.GONE));
+        vm.error().observe(this, msg -> { if (msg != null) Toast.makeText(this, msg, Toast.LENGTH_SHORT).show(); });
 
         vm.loadFirst(20);
 

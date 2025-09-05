@@ -51,17 +51,17 @@ public final class CallAdapter extends RecyclerView.Adapter<CallAdapter.CallView
 
     static final class CallViewHolder extends RecyclerView.ViewHolder {
         private final TextView tvTitle;
-        private final TextView tvSub;
+        private final TextView tvMeta;
 
         CallViewHolder(@NonNull View itemView) {
             super(itemView);
             tvTitle = itemView.findViewById(R.id.tv_title);
-            tvSub = itemView.findViewById(R.id.tv_sub);
+            tvMeta = itemView.findViewById(R.id.tv_meta);
         }
 
         void bind(@NonNull CallRecord item) {
             tvTitle.setText(item.fileName);
-            tvSub.setText(TimeFormatter.toMmSs(item.durationMs));
+            tvMeta.setText(TimeFormatter.toMmSs(item.durationMs));
         }
     }
 

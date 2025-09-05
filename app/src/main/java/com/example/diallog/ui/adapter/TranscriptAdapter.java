@@ -14,38 +14,37 @@ import com.example.diallog.R;
 import com.example.diallog.data.model.TranscriptSegment;
 import com.example.diallog.utils.TimeFormatter;
 
-public final class TranscriptAdapter extends ListAdapter<TranscriptSegment, TranscriptAdapter.VH> {
-    public TranscriptAdapter() {
-        super(new DiffUtil.ItemCallback<>() {
-            @Override public boolean areItemsTheSame(@NonNull TranscriptSegment oldItem, @NonNull  TranscriptSegment newItem) {
-                return oldItem.startMs == newItem.startMs
-                        && oldItem.endMs == newItem.endMs;
-            }
+import java.util.ArrayList;
+import java.util.List;
 
-            @Override public boolean areContentsTheSame(@NonNull  TranscriptSegment oldItem, @NonNull  TranscriptSegment newItem) {
-                return oldItem.startMs == newItem.startMs
-                        && oldItem.endMs == newItem.endMs
-                        && oldItem.text.equals(newItem.text);
-            }
-        });
+public final class TranscriptAdapter extends RecyclerView.Adapter<TranscriptAdapter.VH> {
+    private final List<TranscriptSegment> items = new ArrayList<>();
+
+    public void submitList(@NonNull List<TranscriptSegment> data){
+        items.clear();
+        items.addAll(data);
+        notifyDataSetChanged();
     }
 
-    static final class VH extends RecyclerView.ViewHolder {
-        final TextView start, text;
-        VH(View v){
-            super(v);
-            start = v.findViewById(R.id.start);
-            text = v.findViewById(R.id.text);
+    @NonNull @Override public VH onCreateViewHolder(@NonNull ViewGroup p, int v){
+        View view = LayoutInflater.from(p.getContext()).inflate(R.layout.item_transcript, p, false);
+        return new VH(view);
+    }
+
+    @Override public void onBindViewHolder(@NonNull VH h, int pos){
+        TranscriptSegment s = items.get(pos);
+        h.time.setText(TimeFormatter.toMmSs(s.startMs));
+        h.text.setText(s.text);
+    }
+
+    @Override public int getItemCount(){ return items.size(); }
+
+    static final class VH extends RecyclerView.ViewHolder{
+        final TextView time, text;
+        VH(@NonNull View itemView){
+            super(itemView);
+            text = itemView.findViewById(R.id.tv_text);
+            time = itemView.findViewById(R.id.tv_time);
         }
     }
-
-    @Override public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType){
-        return new VH(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_transcript, parent, false));
-    }
-    @Override public void onBindViewHolder(VH h, int position){
-        TranscriptSegment segment = getItem(position);
-        h.start.setText(TimeFormatter.toMmSs(segment.startMs));
-        h.text.setText(segment.text);
-    }
-
 }
