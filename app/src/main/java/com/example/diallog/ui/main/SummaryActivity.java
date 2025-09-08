@@ -1,7 +1,7 @@
 package com.example.diallog.ui.main;
+import com.example.diallog.BuildConfig;
 
 import android.os.Bundle;
-import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -11,7 +11,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.diallog.R;
-import com.example.diallog.data.repository.MockTranscriber;
+import com.example.diallog.data.network.ApiClient;
+import com.example.diallog.data.repository.*;
 import com.example.diallog.ui.adapter.TranscriptAdapter;
 import com.example.diallog.ui.viewmodel.SummaryVMFactory;
 import com.example.diallog.ui.viewmodel.SummaryViewModel;
@@ -27,14 +28,30 @@ public final class SummaryActivity extends AppCompatActivity {
         rv.setLayoutManager(new LinearLayoutManager(this));
         rv.setAdapter(adapter);
 
+        Transcriber clova = new ClovaSpeechTranscriber(
+                this,
+                ApiClient.clova(),
+                "ko-KR"
+        );
+        Transcriber google = new GoogleTranscriber();   // 더미, 미구현
+
+        // 감지기(임시)
+        LanguageDetector det = new NoopLanguageDetector();
+        Transcriber routed = new RouterTranscriber(clova, google, det);
+
+        Transcriber finalTranscriber =
+                (BuildConfig.STT_API_KEY_ID.isEmpty() || BuildConfig.STT_API_KEY.isEmpty())
+                        ? new MockTranscriber()
+                        : routed;
+
         SummaryViewModel vm = new ViewModelProvider(
-                this, new SummaryVMFactory(new MockTranscriber())
+                this, new SummaryVMFactory(finalTranscriber)
         ).get(SummaryViewModel.class);
+        String path = getIntent().getStringExtra("audioPath");
 
         vm.segments().observe(this, adapter::submitList);
         vm.error().observe(this, e -> { if (e != null) Toast.makeText(this, e, Toast.LENGTH_SHORT).show(); });
 
-        String path = getIntent().getStringExtra("audioPath");
         if (path != null) vm.transcribe(path);
     }
 
