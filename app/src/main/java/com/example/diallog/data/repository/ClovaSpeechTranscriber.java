@@ -45,7 +45,14 @@ public final class ClovaSpeechTranscriber implements Transcriber {
             RequestBody mediaRb = RequestBody.create(mediaFile, parse(guessMimeType(mediaFile.getName())));
             MultipartBody.Part media = MultipartBody.Part.createFormData("media", mediaFile.getName(), mediaRb);
 
-            String paramsJson = "{\"language\":\"" + language + "\",\"completion\":\"sync\",\"fullText\":true}";
+            String paramsJson =
+                    "{"
+                            + "\"language\":\"" + language + "\","
+                            + "\"completion\":\"sync\","
+                            + "\"fullText\":true,"
+                            + "\"wordAlignment\":true,"
+                            + "\"diarization\":{\"enable\":true}"
+                            + "}";
             RequestBody params = RequestBody.create(parse("application/json"), paramsJson);
             RequestBody type = RequestBody.create(parse("text/plain"), "application/json");
 
@@ -64,7 +71,6 @@ public final class ClovaSpeechTranscriber implements Transcriber {
             List<TranscriptSegment> out = new ArrayList<>();
             if (b.segments != null && !b.segments.isEmpty()) {
                 for (ClovaSpeechResponse.Seg s : b.segments) {
-                    if (s == null || s.text == null) continue;
                     out.add(new TranscriptSegment(s.text, s.startMs, s.endMs));
                 }
             } else if (b.text != null && !b.text.isEmpty()) {

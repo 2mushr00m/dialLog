@@ -53,14 +53,25 @@ public final class ApiClient {
 
     public static Retrofit clova() {
         HttpLoggingInterceptor log = new HttpLoggingInterceptor();
-        log.setLevel(HttpLoggingInterceptor.Level.BODY);
+        log.setLevel(HttpLoggingInterceptor.Level.HEADERS);
+
+        okhttp3.Interceptor peekJson = chain -> {
+            okhttp3.Response r = chain.proceed(chain.request());
+            String ct = r.header("Content-Type", "");
+            if (ct != null && ct.contains("application/json")) {
+                okhttp3.ResponseBody peek = r.peekBody(512 * 1024); // 최대 512KB만 미리보기
+                android.util.Log.d("ClovaJSON", peek.string());     // segments 키 확인용
+            }
+            return r;
+        };
 
         OkHttpClient ok = new OkHttpClient.Builder()
+                .addInterceptor(peekJson)
                 .addInterceptor(log)
                 .build();
 
         return new Retrofit.Builder()
-                .baseUrl(BuildConfig.STT_BASE) // 게이트웨이만 필요
+                .baseUrl(BuildConfig.STT_BASE)
                 .client(ok)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();

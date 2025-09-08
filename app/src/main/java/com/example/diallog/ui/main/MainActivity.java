@@ -41,7 +41,7 @@ public final class MainActivity extends AppCompatActivity {
 //                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
 //                "Recordings"
 //        );
-        CallRepository repo = new MockCallRepository();
+        CallRepository repo = new MockCallRepository(getApplicationContext());
 //        CallRepository repo = new FileSystemCallRepository(recordings);
         MainViewModel vm = new ViewModelProvider(this, new MainVMFactory(repo)).get(MainViewModel.class);
 
@@ -49,9 +49,9 @@ public final class MainActivity extends AppCompatActivity {
         if (!PermissionHelper.hasAudioRead(this)) {
             PermissionHelper.requestAudioRead(this);
             // 권한 승인 미허가 시, 애플리케이션 종료
-            repo = new MockCallRepository();
+            repo = new MockCallRepository(getApplicationContext());
         } else {
-            repo = new MockCallRepository();
+            repo = new MockCallRepository(getApplicationContext());
 //            repo = new FileSystemCallRepository(recordingsDir);
         }
 

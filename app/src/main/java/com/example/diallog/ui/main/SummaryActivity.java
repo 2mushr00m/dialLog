@@ -39,10 +39,8 @@ public final class SummaryActivity extends AppCompatActivity {
         LanguageDetector det = new NoopLanguageDetector();
         Transcriber routed = new RouterTranscriber(clova, google, det);
 
-        Transcriber finalTranscriber =
-                (BuildConfig.STT_API_KEY_ID.isEmpty() || BuildConfig.STT_API_KEY.isEmpty())
-                        ? new MockTranscriber()
-                        : routed;
+        boolean useReal = BuildConfig.STT_API_KEY != null && !BuildConfig.STT_API_KEY.isEmpty();
+        Transcriber finalTranscriber = useReal ? routed : new MockTranscriber();
 
         SummaryViewModel vm = new ViewModelProvider(
                 this, new SummaryVMFactory(finalTranscriber)

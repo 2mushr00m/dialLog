@@ -27,18 +27,13 @@ android {
 
         buildConfigField(
             "String",
-            "STT_API_KEY_ID",
-            "\"${localProps.getProperty("STT_API_KEY_ID", "")}\""
-        )
-        buildConfigField(
-            "String",
             "STT_API_KEY",
             "\"${localProps.getProperty("STT_API_KEY", "")}\""
         )
         buildConfigField(
             "String",
-            "STT_BASE", // 필요시 기본 게이트웨이만
-            "\"${localProps.getProperty("STT_BASE", "https://naveropenapi.apigw.ntruss.com/")}\""
+            "STT_BASE",
+            "\"${localProps.getProperty("STT_BASE", "")}\""
         )
     }
 
