@@ -1,5 +1,6 @@
 package com.example.diallog.ui.viewmodel;
 
+import androidx.annotation.MainThread;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -13,66 +14,67 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public final class MainViewModel extends ViewModel {
+    private static final int PAGE_SIZE = 20;
+
     private final CallRepository repo;
     private final MutableLiveData<List<CallRecord>> items = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<Boolean> loading = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> isEmpty = new MutableLiveData<>(false);
     private final MutableLiveData<String> error = new MutableLiveData<>(null);
 
+    private boolean endReached = false;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private int offset = 0;
-    private int pageSize = 20;
-    private boolean hasMore = true;
 
 
     public MainViewModel(CallRepository repo) {
         this.repo = repo;
     }
 
-    public LiveData<List<CallRecord>> items()   { return items; }
-    public LiveData<Boolean> loading()          { return loading; }
-    public LiveData<String> error()             { return error;  }
-    public boolean hasMore()                    { return hasMore; }
+    public LiveData<List<CallRecord>> getItems() { return items; }
+    public LiveData<Boolean> getLoading() { return loading; }
+    public LiveData<Boolean> getIsEmpty() { return isEmpty; }
+    public LiveData<String> getError() { return error; }
+    public boolean isEndReached() { return endReached; }
 
 
-    public void loadFirst(int limit) {
-        if (Boolean.TRUE.equals(loading.getValue())) return;
-        pageSize = Math.max(1, limit);
-        offset = 0; hasMore = true; error.postValue(null);
-        loading.postValue(true);
+    @MainThread public void loadMore(){
+        if (Boolean.TRUE.equals(loading.getValue()) || endReached) return;
+        loading.setValue(true);
+        error.setValue(null);
+
         io.submit(() -> {
             try {
-                List<CallRecord> page = repo.getRecent(0, pageSize);
-                items.postValue(new ArrayList<>(page));
-                offset = page.size();
-                hasMore = page.size() == pageSize;
-            } catch (Exception e) {
-                error.postValue(e.getMessage());
+                List<CallRecord> page = repo.getRecent(offset, PAGE_SIZE);
+
+                if (page == null || page.isEmpty()) {
+                    endReached = true;
+                    List<CallRecord> cur = items.getValue();
+                    boolean currentlyEmpty = (cur == null || cur.isEmpty());
+                    if (currentlyEmpty) isEmpty.postValue(true);
+                } else {
+                    List<CallRecord> current = new ArrayList<>(items.getValue());
+                    current.addAll(page);
+                    items.postValue(current);
+                    offset += page.size();
+                    if (page.size() < PAGE_SIZE) endReached = true;
+                    isEmpty.postValue(current.isEmpty());
+                }
+            } catch (Exception ex) {
+                error.postValue(ex.getMessage());
             } finally {
                 loading.postValue(false);
             }
         });
     }
 
-    public void loadMore(){
-        if (Boolean.TRUE.equals(loading.getValue())) return;
-        if (!hasMore) return;
-        loading.postValue(true);
-        io.submit(() -> {
-            try {
-                List<CallRecord> page = repo.getRecent(offset, pageSize);
-                List<CallRecord> current = items.getValue();
-                if (current == null) current = new ArrayList<>();
-                current = new ArrayList<>(current);
-                current.addAll(page);
-                items.postValue(current);
-                offset += page.size();
-                hasMore = page.size() == pageSize;
-            } catch (Exception e) {
-                error.postValue(e.getMessage());
-            } finally {
-                loading.postValue(false);
-            }
-        });
+    @MainThread
+    public void refresh() {
+        offset = 0;
+        endReached = false;
+        isEmpty.setValue(false);
+        items.setValue(new ArrayList<>());
+        loadMore();
     }
 
     @Override protected void onCleared() { io.shutdownNow(); }

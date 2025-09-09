@@ -18,15 +18,20 @@ import com.example.diallog.ui.viewmodel.SummaryVMFactory;
 import com.example.diallog.ui.viewmodel.SummaryViewModel;
 
 public final class SummaryActivity extends AppCompatActivity {
+    private RecyclerView recyclerView;
+    private TranscriptAdapter adapter;
+    private SummaryViewModel viewModel;
+
     @Override protected void onCreate(@Nullable Bundle b){
         super.onCreate(b);
         setContentView(R.layout.activity_summary);
 
-        RecyclerView rv = findViewById(R.id.rv_transcript);
+        recyclerView = findViewById(R.id.rv_transcript);
 
-        TranscriptAdapter adapter = new TranscriptAdapter();
-        rv.setLayoutManager(new LinearLayoutManager(this));
-        rv.setAdapter(adapter);
+        adapter = new TranscriptAdapter();
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(adapter);
+        recyclerView.setItemAnimator(null);
 
         Transcriber clova = new ClovaSpeechTranscriber(
                 this,
@@ -42,15 +47,16 @@ public final class SummaryActivity extends AppCompatActivity {
         boolean useReal = BuildConfig.STT_API_KEY != null && !BuildConfig.STT_API_KEY.isEmpty();
         Transcriber finalTranscriber = useReal ? routed : new MockTranscriber();
 
-        SummaryViewModel vm = new ViewModelProvider(
+        viewModel = new ViewModelProvider(
                 this, new SummaryVMFactory(finalTranscriber)
         ).get(SummaryViewModel.class);
         String path = getIntent().getStringExtra("audioPath");
 
-        vm.segments().observe(this, adapter::submitList);
-        vm.error().observe(this, e -> { if (e != null) Toast.makeText(this, e, Toast.LENGTH_SHORT).show(); });
+        adapter.submitList(java.util.Collections.emptyList());
+        viewModel.segments().observe(this, adapter::submitList);
+        viewModel.error().observe(this, e -> { if (e != null) Toast.makeText(this, e, Toast.LENGTH_SHORT).show(); });
 
-        if (path != null) vm.transcribe(path);
+        if (path != null) viewModel.transcribe(path);
     }
 
 }
