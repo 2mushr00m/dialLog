@@ -3,25 +3,24 @@ package com.example.diallog.data.repository;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
-import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.provider.MediaStore;
 import android.text.TextUtils;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.documentfile.provider.DocumentFile;
 
 import com.example.diallog.data.model.CallRecord;
 
-import java.io.File;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 
@@ -36,223 +35,305 @@ import java.util.Set;
  *  - Android 12L 이하: android.permission.READ_EXTERNAL_STORAGE
  */
 public final class FileSystemCallRepository implements CallRepository {
+    private static final String TAG = "Repo";
+    private static final int MAX_DEPTH_SAF = 4;        // SAF 순회 최대 깊이
+    private static final int MAX_FILES_SAF = 200;      // SAF에서 수집할 최대 파일 수
+    private static final long TIME_BUDGET_MS = 250L;   // 한 스캔 호출 당 시간 예산
 
-    private static final String[] PROJECTION = new String[]{
-            MediaStore.Audio.Media._ID,
-            MediaStore.Audio.Media.DATA,
-            MediaStore.Audio.Media.DISPLAY_NAME,
-            MediaStore.Audio.Media.RELATIVE_PATH,
-            MediaStore.Audio.Media.DURATION,
-            MediaStore.Audio.Media.DATE_MODIFIED,
-            MediaStore.Audio.Media.SIZE
-    };
-    private final ContentResolver cr;
-    private volatile List<CallRecord> cached = null;
-    private static final Set<String> AUDIO_EXT = new HashSet<>(Arrays.asList(
-            ".m4a", ".mp3", ".acc", ".wav", ".3gp","ogg","opus"));
-    private static final Set<String> HINTS = new HashSet<>(Arrays.asList(
-            "call", "record", "rec", "통화", "녹음", "전화"));
+    private final Context appContext;
+    @Nullable private final Uri dirUri;
+    private final Set<String> AUDIO_EXT;
+    private final Set<String> HINTS;
+    private final List<CallRecord> cache = new ArrayList<>();
+    private volatile boolean scanned = false;
 
-    public FileSystemCallRepository(@NonNull Context context) {
-        this.cr = context.getApplicationContext().getContentResolver();
+    public FileSystemCallRepository(@NonNull Context context,
+                                    @Nullable Uri dirUri,
+                                    @NonNull Set<String> hints,
+                                    @NonNull Set<String> audioExt) {
+        this.appContext = context.getApplicationContext();
+        this.dirUri = dirUri;
+        this.HINTS = new HashSet<>(hints);
+        for (String h : hints) this.HINTS.add(h.toLowerCase());
+        this.AUDIO_EXT = new HashSet<>();
+        for (String ext : audioExt) this.AUDIO_EXT.add(ext.replace(".", "").toLowerCase());
     }
 
-    @Override @NonNull
-    public List<CallRecord> getRecent(int offset, int limit) {
-        List<CallRecord> page = new ArrayList<>(limit);
-        Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+    /** 스캔 (백그라운드에서 호출) */
+    private synchronized void ensureScanned() {
+        if (scanned) { Log.i(TAG, "ensureScanned: skip (already)"); return; }
 
-        String selection = MediaStore.Audio.Media.DURATION + " > ?";
-        String[] selectionArgs = new String[]{ String.valueOf(0) };
-        String sortOrder = MediaStore.Audio.Media.DATE_MODIFIED + " DESC";
+        Log.i(TAG, "ensureScanned: start dirUri=" + (dirUri != null));
+        final long t0 = android.os.SystemClock.uptimeMillis();
 
-        try (Cursor c = cr.query(uri, PROJECTION, selection, selectionArgs, sortOrder)) {
-            if (c == null) return page;
-            if (offset > 0 && !c.moveToPosition(offset)) return page;
+        final List<CallRecord> found = new ArrayList<>();
+        try {
+            if (dirUri != null) {
+                Log.i(TAG, "ensureScanned: via SAF");
+                found.addAll(scanUserUri(dirUri, t0));
+            } else {
+                Log.i(TAG, "ensureScanned: via MediaStore");
+                found.addAll(scanMediaStore(300));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "scan failed", e);
+        }
 
-            do {
-                CallRecord rec = mapCandidate(c);
-                if (rec != null) {
-                    page.add(rec);
-                    if (page.size() >= limit) break;
+        found.sort((a, b) -> Long.compare(b.startedAtEpochMs, a.startedAtEpochMs));
+        cache.clear();
+        cache.addAll(found);
+        scanned = true;
+        Log.i(TAG, "ensureScanned: done found=" + found.size());
+    }
+
+    /** SAF 폴더: 폴더 지정 → 파일 불러오기 */
+    private List<CallRecord> scanUserUri(@NonNull Uri uri, long startTicks) {
+        final List<CallRecord> out = new ArrayList<>(Math.min(64, MAX_FILES_SAF));
+        final DocumentFile root = DocumentFile.fromTreeUri(appContext, uri);
+        if (root == null || !root.isDirectory()) return out;
+
+        final java.util.ArrayDeque<DocNode> dq = new java.util.ArrayDeque<>();
+        dq.add(new DocNode(root, 0));
+
+        int collected = 0;
+        while (!dq.isEmpty()) {
+            if (android.os.SystemClock.uptimeMillis() - startTicks > TIME_BUDGET_MS) break;
+
+            final DocNode node = dq.removeFirst();
+            final DocumentFile dir = node.dir;
+            if (node.depth > MAX_DEPTH_SAF) continue;
+
+            final DocumentFile[] children = dir.listFiles();
+            if (children == null) continue;
+
+            for (DocumentFile f : children) {
+                if (collected >= MAX_FILES_SAF) break;
+                if (android.os.SystemClock.uptimeMillis() - startTicks > TIME_BUDGET_MS) break;
+
+                final String name = f.getName();
+                if (name == null) continue;
+
+                if (f.isDirectory()) {
+                    if (name.startsWith(".") || name.equalsIgnoreCase("Android") ||
+                            name.toLowerCase().contains("cache") || name.toLowerCase().contains("backup")) {
+                        continue;
+                    }
+                    dq.addLast(new DocNode(f, node.depth + 1));
+                    continue;
                 }
-            } while (c.moveToNext());
-        }
-        return page;
-    }
 
-    private CallRecord mapCandidate(@NonNull Cursor c) {
-        long id = c.getLong(c.getColumnIndexOrThrow(MediaStore.Audio.Media._ID));
-        String data = getString(c, MediaStore.Audio.Media.DATA);
-        String display = getString(c, MediaStore.Audio.Media.DISPLAY_NAME);
-        String relPath = getString(c, MediaStore.Audio.Media.RELATIVE_PATH);
-        long durationMs = c.getLong(c.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION));
-        long dateModifiedSec = c.getLong(c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED));
-        long size = c.getLong(c.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE));
+                if (!isAudio(name)) continue;
 
-        // 1) 확장자 필터
-        String extKey = !TextUtils.isEmpty(data) ? data : display;
-        if (extKey == null) return null;
-        String extKeyLower = extKey.toLowerCase(Locale.ROOT);
-        if (!endsWithAny(extKeyLower, AUDIO_EXT)) return null;
-
-        // 2) 파일명/경로 힌트 검사
-        String pathTarget = "";
-        if (!TextUtils.isEmpty(data)) {
-            pathTarget = data;
-        } else if (!TextUtils.isEmpty(relPath) || !TextUtils.isEmpty(display)) {
-            String rp = relPath != null ? relPath : "";
-            String dn = display != null ? display : "";
-            pathTarget = rp + "/" + dn;
-        }
-        String nameTarget = display != null ? display : "";
-
-        String pathLower = pathTarget.toLowerCase(Locale.ROOT);
-        String nameLower = nameTarget.toLowerCase(Locale.ROOT);
-
-        boolean hintHit = containsAny(pathLower, HINTS) || containsAny(nameLower, HINTS);
-
-        // 3) 힌트 미적중 시 소음/벨소리 등 노이즈 제거
-        if (!hintHit && durationMs < 5_000) return null;
-
-        // 4) 대표 식별자 선택
-        String pathOrUri = !TextUtils.isEmpty(data)
-                ? data
-                : Uri.withAppendedPath(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, String.valueOf(id)).toString();
-
-        // 5) startedAtEpochMs: DATE_MODIFIED(초) → ms
-        long startedAtEpochMs = dateModifiedSec > 0 ? dateModifiedSec * 1000L : System.currentTimeMillis();
-
-        // 6) 모델 매핑
-        return new CallRecord(
-                pathOrUri,
-                display != null ? display : "audio_" + id,
-                durationMs,
-                startedAtEpochMs
-        );
-    }
-
-    @Override @Nullable
-    public CallRecord getByPath(@NonNull String path) {
-        Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-
-        // content Uri로 전달
-        if (path.startsWith("content://")) {
-            String sel = MediaStore.Audio.Media._ID + " = ?";
-            // _ID를 직접 알 수 없는 경우가 많음 → content 문자열 비교로 후속 처리
-            // 현실적으로는 이 분기에서 전수 스캔 → mapIfCandidate 경로/이름 힌트로 필터링이 안전
-            // 여기서는 간단히 DISPLAY_NAME 일치 fallback로 처리
-        }
-
-        // 2) DATA(절대경로)
-        String selData = MediaStore.Audio.Media.DATA + " = ?";
-        try (Cursor c = cr.query(uri, PROJECTION, selData, new String[]{path}, null)) {
-            if (c != null && c.moveToFirst()) {
-                return mapCandidate(c);
+                final long startedAt = Math.max(0L, f.lastModified());
+                out.add(new CallRecord(
+                        f.getUri().toString(), name, 0L, startedAt
+                ));
+                collected++;
             }
+            if (collected >= MAX_FILES_SAF) break;
         }
-
-        // 3) DISPLAY_NAME fallback
-        String name = path.substring(path.lastIndexOf('/') + 1);
-        String selName = MediaStore.Audio.Media.DISPLAY_NAME + " = ?";
-        try (Cursor c2 = cr.query(uri, PROJECTION, selName, new String[]{name},
-                MediaStore.Audio.Media.DATE_MODIFIED + " DESC")) {
-            if (c2 != null && c2.moveToFirst()) {
-                return mapCandidate(c2);
-            }
-        }
-        return null;
+        return out;
+    }
+    private static final class DocNode {
+        final androidx.documentfile.provider.DocumentFile dir;
+        final int depth;
+        DocNode(androidx.documentfile.provider.DocumentFile d, int depth) { this.dir = d; this.depth = depth; }
     }
 
-    @Nullable
-    private static String getString(@NonNull Cursor c, @NonNull String col) {
-        int idx = c.getColumnIndex(col);
-        if (idx < 0) return null;
-        return c.getString(idx);
-    }
+    /** MediaStore 검색: 경로/파일명에 힌트 포함 + 확장자 필터 */
+    private List<CallRecord> scanMediaStore(int limit) {
+        List<CallRecord> hinted = queryMediaStore(limit, true);
+        Log.i(TAG, "scanMediaStore: hinted.size=" + hinted.size());
+        List<CallRecord> general = queryMediaStore(Math.max(limit * 2, 100), false);
+        Log.i(TAG, "scanMediaStore: general.size=" + general.size());
 
-    private static boolean endsWithAny(@NonNull String textLower, @NonNull Set<String> suffixesLower) {
-        for (String s : suffixesLower) {
-            if (textLower.endsWith(s)) return true;
+        LinkedHashMap<String, CallRecord> map = new LinkedHashMap<>();
+        for (CallRecord r : hinted) map.put(r.path, r);
+        for (CallRecord r : general) map.putIfAbsent(r.path, r);
+
+        List<CallRecord> merged = new ArrayList<>(map.values());
+        merged.sort((a, b) -> {
+            int sa = containsHint(a) ? 0 : 1;
+            int sb = containsHint(b) ? 0 : 1;
+            if (sa != sb) return Integer.compare(sa, sb);
+            return Long.compare(b.startedAtEpochMs, a.startedAtEpochMs);
+        });
+
+        Log.i(TAG, "scanMediaStore: merged.size=" + merged.size());
+        if (merged.size() > limit) {
+            List<CallRecord> sub = new java.util.ArrayList<>(merged.subList(0, limit));
+            Log.i(TAG, "scanMediaStore: return limited to " + sub.size());
+            return sub;
         }
-        return false;
+        return merged;
     }
 
-    private static boolean containsAny(@NonNull String textLower, @NonNull Set<String> needlesLower) {
-        if (textLower.isEmpty()) return false;
-        for (String n : needlesLower) {
-            if (textLower.contains(n)) return true;
-        }
-        return false;
-    }
+    private List<CallRecord> queryMediaStore(int limit, boolean useHints) {
+        final List<CallRecord> out = new ArrayList<>(Math.min(64, limit));
+        final ContentResolver cr = appContext.getContentResolver();
+        final Uri base = (Build.VERSION.SDK_INT >= 29)
+                ? MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+                : MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
 
-
-    private void scanDirRecursive(@Nullable File dir, @NonNull List<CallRecord> sink) {
-        if (dir == null || !dir.exists() || !dir.isDirectory()) return;
-        File[] files = dir.listFiles();
-        if (files == null) return;
-
-        for (File f : files) {
-            if (f.isDirectory()) {
-                scanDirRecursive(f, sink);
-                continue;
-            }
-            String name = f.getName();
-            int dot = name.lastIndexOf('.');
-            if (dot <= 0) continue;
-            String ext = name.substring(dot + 1).toLowerCase(Locale.KOREA);
-            if (!AUDIO_EXT.contains(ext)) continue;
-
-            long durationMs = readDurationMs(f);
-            long createdMs = readCreatedMs(f); // 메타 → 실패 시 lastModified
-            sink.add(new CallRecord(f.getAbsolutePath(), name, durationMs, createdMs));
-        }
-    }
-
-    private long readDurationMs(@NonNull File file) {
-        MediaMetadataRetriever mmr = new MediaMetadataRetriever();
-        try {
-            mmr.setDataSource(file.getAbsolutePath());
-            String dur = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
-            if (dur == null) return 0L;
-            return Long.parseLong(dur);
-        } catch (Throwable t) {
-            return 0L;
-        } finally {
-            try { mmr.release(); } catch (Throwable ignored) {}
-        }
-    }
-
-    private long readCreatedMs(@NonNull File file) {
-        MediaMetadataRetriever mmr = new MediaMetadataRetriever();
-        try {
-            mmr.setDataSource(file.getAbsolutePath());
-            String date = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE);
-            Long parsed = parseExifLike(date);
-            return (parsed != null && parsed > 0) ? parsed : file.lastModified();
-        } catch (Throwable t) {
-            return file.lastModified();
-        } finally {
-            try { mmr.release(); } catch (Throwable ignored) {}
-        }
-    }
-
-    @Nullable
-    private Long parseExifLike(@Nullable String s) {
-        if (s == null) return null;
-        String[] patterns = {
-                "yyyyMMdd'T'HHmmss.SSSZ", "yyyyMMdd'T'HHmmssZ",
-                "yyyyMMdd HHmmss", "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd"
+        final String[] proj = new String[] {
+                MediaStore.Audio.Media._ID,
+                MediaStore.Audio.Media.DISPLAY_NAME,
+                MediaStore.Audio.Media.MIME_TYPE,
+                MediaStore.Audio.Media.SIZE,
+                MediaStore.Audio.Media.DURATION,
+                MediaStore.Audio.Media.DATE_ADDED,
+                (Build.VERSION.SDK_INT >= 29 ? MediaStore.Audio.Media.RELATIVE_PATH
+                        : MediaStore.Audio.Media.DATA)
         };
-        for (String p : patterns) {
-            try {
-                SimpleDateFormat df = new SimpleDateFormat(p, Locale.US);
-                if (Build.VERSION.SDK_INT >= 24) df.setLenient(true);
-                return df.parse(s).getTime();
-            } catch (ParseException ignored) {}
+
+        List<String> sel = new ArrayList<>();
+        List<String> args = new ArrayList<>();
+
+        // 기본 필터
+        sel.add(MediaStore.Audio.Media.MIME_TYPE + " LIKE ?");
+        args.add("audio/%");
+        sel.add(MediaStore.Audio.Media.DURATION + " > ?");
+        args.add("500"); // 0.5s 이상
+        sel.add(MediaStore.Audio.Media.SIZE + " > 0");
+
+        // 확장자 필터: LOWER(DISPLAY_NAME) LIKE %.ext
+        if (!AUDIO_EXT.isEmpty()) {
+            List<String> like = new ArrayList<>();
+            for (String ext : AUDIO_EXT) {
+                like.add("LOWER(" + MediaStore.Audio.Media.DISPLAY_NAME + ") LIKE ?");
+                args.add("%." + ext);
+            }
+            sel.add("(" + TextUtils.join(" OR ", like) + ")");
         }
-        return null;
+
+        // 경로 필터: LOWER(DISPLAY_NAME/PATH) LIKE %hint%
+        if (useHints && !HINTS.isEmpty()) {
+            List<String> like = new ArrayList<>();
+            for (String h : HINTS) {
+                String hint = h.toLowerCase();
+                like.add("LOWER(" + MediaStore.Audio.Media.DISPLAY_NAME + ") LIKE ?");
+                args.add("%" + hint + "%");
+                if (Build.VERSION.SDK_INT >= 29) {
+                    like.add("LOWER(" + MediaStore.Audio.Media.RELATIVE_PATH + ") LIKE ?");
+                    args.add("%" + hint + "%");
+                } else {
+                    like.add("LOWER(" + MediaStore.Audio.Media.DATA + ") LIKE ?");
+                    args.add("%" + hint + "%");
+                }
+            }
+            sel.add("(" + TextUtils.join(" OR ", like) + ")");
+        }
+
+
+        String selection = TextUtils.join(" AND ", sel);
+        String[] selectionArgs = args.toArray(new String[0]);
+
+        Cursor cursor;
+        if (Build.VERSION.SDK_INT >= 29) {
+            Bundle qb = new Bundle();
+            qb.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, selection);
+            qb.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs);
+            qb.putString(ContentResolver.QUERY_ARG_SORT_COLUMNS, MediaStore.Audio.Media.DATE_ADDED);
+            qb.putInt(ContentResolver.QUERY_ARG_SORT_DIRECTION, ContentResolver.QUERY_SORT_DIRECTION_DESCENDING);
+            qb.putInt(ContentResolver.QUERY_ARG_LIMIT, Math.max(1, limit));
+            cursor = cr.query(base, proj, qb, null);
+        } else {
+            String order = MediaStore.Audio.Media.DATE_ADDED + " DESC";
+            cursor = cr.query(base, proj, selection, selectionArgs, order);
+        }
+
+        android.util.Log.d("Repp", "Query useHints=" + useHints +
+                " sel=" + selection + " args=" + java.util.Arrays.toString(selectionArgs));
+
+        try {
+            if (cursor == null) {
+                android.util.Log.w("Repo", "query returned null cursor");
+                return out;
+            }
+            final int iId = cursor.getColumnIndex(MediaStore.Audio.Media._ID);
+            final int iName = cursor.getColumnIndex(MediaStore.Audio.Media.DISPLAY_NAME);
+            final int iMime = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.MIME_TYPE);
+            final int iSize = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE);
+            final int iDate = cursor.getColumnIndex(MediaStore.Audio.Media.DATE_ADDED);
+            final int iDur  = cursor.getColumnIndex(MediaStore.Audio.Media.DURATION);
+            final int iRel = (Build.VERSION.SDK_INT >= 29) ?
+                    cursor.getColumnIndex(MediaStore.Audio.Media.RELATIVE_PATH) :
+                    cursor.getColumnIndex(MediaStore.Audio.Media.DATA);
+
+            int nullName=0, notAudio=0, tooShort=0, zeroSize=0, added=0;
+
+            while (cursor.moveToNext()) {
+                String name = cursor.getString(iName);
+                if (name == null) { nullName++; continue; }
+
+                String mime = cursor.getString(iMime);
+                long size = cursor.getLong(iSize);
+                long dateAddedSec = cursor.getLong(iDate);
+                long durationMs = cursor.getLong(iDur);
+
+                boolean nameOk = isAudio(name);
+                boolean mimeOk = (mime != null && mime.startsWith("audio/"));
+                if (!mimeOk && !nameOk) { notAudio++; continue; }
+                if (durationMs <= 500) { tooShort++; continue; }
+                if (size <= 0) { zeroSize++; continue; }
+
+                long id = cursor.getLong(iId);
+                Uri item = Uri.withAppendedPath(base, String.valueOf(id));
+                long startedAt = dateAddedSec > 0 ? dateAddedSec * 1000L : System.currentTimeMillis();
+
+                out.add(new CallRecord(item.toString(), name, durationMs, startedAt));
+                added++;
+            }
+            android.util.Log.d("Repo", "scanMediaStore useHints=" + useHints +
+                    " added=" + added +
+                    " skip{nullName=" + nullName +
+                    ", notAudio=" + notAudio +
+                    ", tooShort=" + tooShort +
+                    ", zeroSize=" + zeroSize + "}");
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return out;
+    }
+
+    private boolean containsHint(CallRecord r) {
+        String n = r.fileName != null ? r.fileName.toLowerCase() : "";
+        for (String h : HINTS) {
+            String hh = h.toLowerCase();
+            if (n.contains(hh) || r.path.toLowerCase().contains(hh)) return true;
+        }
+        return false;
+    }
+    private boolean isAudio(@NonNull String fileName) {
+        int dot = fileName.lastIndexOf('.');
+        if (dot < 0) return false;
+        String ext = fileName.substring(dot + 1).toLowerCase();
+        return AUDIO_EXT.contains(ext);
     }
 
 
+    // ========== CallRepository 구현 ==========
+
+    @Override
+    public synchronized List<CallRecord> getRecent(int offset, int limit) {
+        Log.i(TAG, "getRecent offset=" + offset + " limit=" + limit + " scanned=" + scanned);
+        ensureScanned();
+        int to = Math.min(cache.size(), offset + limit);
+        Log.i(TAG, "getRecent cacheSize=" + cache.size() + " sublist=[" + offset + "," + to + ")");
+        if (offset >= to) return Collections.emptyList();
+        return new ArrayList<>(cache.subList(offset, to));
+    }
+
+    @Override
+    public synchronized @Nullable CallRecord getByPath(@NonNull String path) {
+        ensureScanned();
+        for (CallRecord cr : cache) {
+            if (cr.path.equals(path)) return cr;
+        }
+        return null;
+    }
+    @Override public synchronized void reload() {
+        scanned = false;
+        cache.clear();
+    }
 }

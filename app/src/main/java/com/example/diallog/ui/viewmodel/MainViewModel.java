@@ -1,5 +1,7 @@
 package com.example.diallog.ui.viewmodel;
 
+import android.util.Log;
+
 import androidx.annotation.MainThread;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -14,15 +16,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public final class MainViewModel extends ViewModel {
+    private static final String TAG = "MainVM";
+
     private static final int PAGE_SIZE = 20;
 
     private final CallRepository repo;
     private final MutableLiveData<List<CallRecord>> items = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<Boolean> loading = new MutableLiveData<>(false);
-    private final MutableLiveData<Boolean> isEmpty = new MutableLiveData<>(false);
     private final MutableLiveData<String> error = new MutableLiveData<>(null);
+    private MutableLiveData<Boolean> endReached = new MutableLiveData<>(false);
 
-    private boolean endReached = false;
+
+    private volatile boolean pendingRefresh = false;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private int offset = 0;
 
@@ -33,13 +38,16 @@ public final class MainViewModel extends ViewModel {
 
     public LiveData<List<CallRecord>> getItems() { return items; }
     public LiveData<Boolean> getLoading() { return loading; }
-    public LiveData<Boolean> getIsEmpty() { return isEmpty; }
     public LiveData<String> getError() { return error; }
-    public boolean isEndReached() { return endReached; }
+    public LiveData<Boolean> getEndReached() { return endReached; }
 
 
     @MainThread public void loadMore(){
-        if (Boolean.TRUE.equals(loading.getValue()) || endReached) return;
+        if (Boolean.TRUE.equals(loading.getValue()) || Boolean.TRUE.equals(endReached.getValue())) {
+            Log.i(TAG, "loadMore: skipped loading=" + loading.getValue() + " end=" + endReached.getValue());
+            return;
+        }
+        Log.i(TAG, "loadMore: start offset=" + offset + " page=" + PAGE_SIZE);
         loading.setValue(true);
         error.setValue(null);
 
@@ -48,32 +56,42 @@ public final class MainViewModel extends ViewModel {
                 List<CallRecord> page = repo.getRecent(offset, PAGE_SIZE);
 
                 if (page == null || page.isEmpty()) {
-                    endReached = true;
-                    List<CallRecord> cur = items.getValue();
-                    boolean currentlyEmpty = (cur == null || cur.isEmpty());
-                    if (currentlyEmpty) isEmpty.postValue(true);
+                    endReached.postValue(true);
                 } else {
-                    List<CallRecord> current = new ArrayList<>(items.getValue());
+                    List<CallRecord> current = new ArrayList<>(items.getValue()!= null ? items.getValue() : new ArrayList<>());
                     current.addAll(page);
                     items.postValue(current);
                     offset += page.size();
-                    if (page.size() < PAGE_SIZE) endReached = true;
-                    isEmpty.postValue(current.isEmpty());
+                    if (page.size() < PAGE_SIZE)
+                        endReached.postValue(true);
                 }
             } catch (Exception ex) {
+                Log.e(TAG, "loadMore: error", ex);
                 error.postValue(ex.getMessage());
             } finally {
                 loading.postValue(false);
+                Log.i(TAG, "loadMore: done offset=" + offset);
+                if (pendingRefresh) {
+                    pendingRefresh = false;
+                    new android.os.Handler(android.os.Looper.getMainLooper()).post(this::refresh);
+                }
             }
         });
     }
 
-    @MainThread
-    public void refresh() {
+
+    public void replaceRepository(CallRepository repo) {
+    }
+    @MainThread public void refresh() {
+        Log.i(TAG, "refresh: reset");
+        if (Boolean.TRUE.equals(loading.getValue())) {
+            pendingRefresh = true;
+            return;
+        }
         offset = 0;
-        endReached = false;
-        isEmpty.setValue(false);
+        endReached.setValue(false);
         items.setValue(new ArrayList<>());
+        try { repo.reload(); } catch (Throwable ignore) {}
         loadMore();
     }
 

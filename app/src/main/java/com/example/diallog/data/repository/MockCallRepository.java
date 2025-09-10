@@ -3,6 +3,7 @@ package com.example.diallog.data.repository;
 import android.content.Context;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.example.diallog.R;
 import com.example.diallog.data.model.CallRecord;
@@ -33,7 +34,7 @@ public final class MockCallRepository implements CallRepository {
     }
 
     @Override
-    public CallRecord getByPath(@NonNull String path) {
+    public @Nullable CallRecord getByPath(@NonNull String path) {
         for (CallRecord r : fake) if (r.path.equals(path)) return r;
         return null;
     }
