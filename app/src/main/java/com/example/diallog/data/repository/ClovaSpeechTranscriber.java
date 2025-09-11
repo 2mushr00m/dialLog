@@ -1,6 +1,9 @@
 package com.example.diallog.data.repository;
 
 import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
 
@@ -15,6 +18,7 @@ import com.example.diallog.BuildConfig;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,10 +40,13 @@ public final class ClovaSpeechTranscriber implements Transcriber {
     }
 
     @Override
-    public List<TranscriptSegment> transcribe(String audioPath) {
+    public @NonNull List<TranscriptSegment> transcribe(@NonNull Uri audioUri) {
+        File mediaFile = null;
+        boolean temp = false;
         try {
             // 1) 입력 파일 결정: 제공된 경로 우선, 없으면 데모용 raw 복사
-            File mediaFile = resolveInputFile(audioPath);
+            mediaFile = resolveInputFile(audioUri);
+            temp = mediaFile.getParentFile() != null && mediaFile.getParentFile().equals(app.getCacheDir());
 
             // 2) multipart 파트 구성
             RequestBody mediaRb = RequestBody.create(mediaFile, parse(guessMimeType(mediaFile.getName())));
@@ -82,23 +89,18 @@ public final class ClovaSpeechTranscriber implements Transcriber {
         }
     }
 
-    private File resolveInputFile(String audioPath) throws Exception {
-        if (audioPath != null) {
-            File f = new File(audioPath);
+    private File resolveInputFile(@NonNull Uri uri) throws Exception {
+        String scheme = uri.getScheme();
+        if ("content".equalsIgnoreCase(scheme)) return copyContentToCache(uri, queryDisplayName(uri));
+        if ("file".equalsIgnoreCase(scheme)) {
+            File f = new File(uri.getPath());
             if (f.exists() && f.length() > 0) return f;
         }
-        // 데모용: res/raw/sample1 → cache 복사
+        if (scheme == null || scheme.isEmpty()) {
+            File f = new File(uri.toString());
+            if (f.exists() && f.length() > 0) return f;
+        }
         return copyRawToCache(R.raw.sample1, "sample1.mp3");
-    }
-
-    private String guessMimeType(@NonNull String fileName) {
-        String lower = fileName.toLowerCase();
-        if (lower.endsWith(".mp3")) return "audio/mp3";
-        if (lower.endsWith(".wav")) return "audio/wav";
-        if (lower.endsWith(".m4a")) return "audio/mp4";
-        if (lower.endsWith(".aac")) return "audio/aac";
-        if (lower.endsWith(".ogg")) return "audio/ogg";
-        return "application/octet-stream";
     }
 
     private File copyRawToCache(int resId, String fileName) throws Exception {
@@ -110,6 +112,35 @@ public final class ClovaSpeechTranscriber implements Transcriber {
             while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
         }
         return dst;
+    }
+    private File copyContentToCache(@NonNull Uri uri, String nameHint) throws Exception {
+        String name = (nameHint != null && !nameHint.isEmpty()) ? nameHint : "audio_" + System.currentTimeMillis();
+        File out = new File(app.getCacheDir(), name);
+        try (InputStream in = app.getContentResolver().openInputStream(uri);
+             OutputStream os = new FileOutputStream(out)) {
+            byte[] buf = new byte[8192]; int n;
+            while ((n = in.read(buf)) > 0) os.write(buf, 0, n);
+        }
+        return out;
+    }
+    private String queryDisplayName(@NonNull Uri uri) {
+        String[] proj = { MediaStore.MediaColumns.DISPLAY_NAME };
+        try (Cursor c = app.getContentResolver().query(uri, proj, null, null, null)) {
+            if (c != null && c.moveToFirst()) {
+                int i = c.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME);
+                if (i >= 0) return c.getString(i);
+            }
+        } catch (Exception ignore) {}
+        return null;
+    }
+    private String guessMimeType(@NonNull String fileName) {
+        String lower = fileName.toLowerCase();
+        if (lower.endsWith(".mp3")) return "audio/mp3";
+        if (lower.endsWith(".wav")) return "audio/wav";
+        if (lower.endsWith(".m4a")) return "audio/mp4";
+        if (lower.endsWith(".aac")) return "audio/aac";
+        if (lower.endsWith(".ogg")) return "audio/ogg";
+        return "application/octet-stream";
     }
 
 }

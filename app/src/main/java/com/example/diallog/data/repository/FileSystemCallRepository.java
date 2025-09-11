@@ -4,6 +4,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.nfc.Tag;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -60,7 +61,7 @@ public final class FileSystemCallRepository implements CallRepository {
     }
 
     /** 스캔 (백그라운드에서 호출) */
-    private synchronized void ensureScanned() {
+    public synchronized void ensureScanned() {
         if (scanned) { Log.i(TAG, "ensureScanned: skip (already)"); return; }
 
         Log.i(TAG, "ensureScanned: start dirUri=" + (dirUri != null));
@@ -126,7 +127,7 @@ public final class FileSystemCallRepository implements CallRepository {
 
                 final long startedAt = Math.max(0L, f.lastModified());
                 out.add(new CallRecord(
-                        f.getUri().toString(), name, 0L, startedAt
+                        f.getUri(), name, 0L, startedAt
                 ));
                 collected++;
             }
@@ -147,9 +148,9 @@ public final class FileSystemCallRepository implements CallRepository {
         List<CallRecord> general = queryMediaStore(Math.max(limit * 2, 100), false);
         Log.i(TAG, "scanMediaStore: general.size=" + general.size());
 
-        LinkedHashMap<String, CallRecord> map = new LinkedHashMap<>();
-        for (CallRecord r : hinted) map.put(r.path, r);
-        for (CallRecord r : general) map.putIfAbsent(r.path, r);
+        LinkedHashMap<Uri, CallRecord> map = new LinkedHashMap<>();
+        for (CallRecord cr : hinted) map.put(cr.uri, cr);
+        for (CallRecord cr : general) map.putIfAbsent(cr.uri, cr);
 
         List<CallRecord> merged = new ArrayList<>(map.values());
         merged.sort((a, b) -> {
@@ -242,12 +243,12 @@ public final class FileSystemCallRepository implements CallRepository {
             cursor = cr.query(base, proj, selection, selectionArgs, order);
         }
 
-        android.util.Log.d("Repp", "Query useHints=" + useHints +
+        Log.i(TAG, "Query useHints=" + useHints +
                 " sel=" + selection + " args=" + java.util.Arrays.toString(selectionArgs));
 
         try {
             if (cursor == null) {
-                android.util.Log.w("Repo", "query returned null cursor");
+                Log.i(TAG, "query returned null cursor");
                 return out;
             }
             final int iId = cursor.getColumnIndex(MediaStore.Audio.Media._ID);
@@ -281,10 +282,10 @@ public final class FileSystemCallRepository implements CallRepository {
                 Uri item = Uri.withAppendedPath(base, String.valueOf(id));
                 long startedAt = dateAddedSec > 0 ? dateAddedSec * 1000L : System.currentTimeMillis();
 
-                out.add(new CallRecord(item.toString(), name, durationMs, startedAt));
+                out.add(new CallRecord(item, name, durationMs, startedAt));
                 added++;
             }
-            android.util.Log.d("Repo", "scanMediaStore useHints=" + useHints +
+            Log.i(TAG, "scanMediaStore useHints=" + useHints +
                     " added=" + added +
                     " skip{nullName=" + nullName +
                     ", notAudio=" + notAudio +
@@ -298,9 +299,10 @@ public final class FileSystemCallRepository implements CallRepository {
 
     private boolean containsHint(CallRecord r) {
         String n = r.fileName != null ? r.fileName.toLowerCase() : "";
+        String p = r.uri.toString().toLowerCase();
         for (String h : HINTS) {
             String hh = h.toLowerCase();
-            if (n.contains(hh) || r.path.toLowerCase().contains(hh)) return true;
+            if (n.contains(hh) || p.contains(hh)) return true;
         }
         return false;
     }
@@ -314,26 +316,22 @@ public final class FileSystemCallRepository implements CallRepository {
 
     // ========== CallRepository 구현 ==========
 
-    @Override
-    public synchronized List<CallRecord> getRecent(int offset, int limit) {
+    @Override public synchronized List<CallRecord> getRecent(int offset, int limit) {
         Log.i(TAG, "getRecent offset=" + offset + " limit=" + limit + " scanned=" + scanned);
-        ensureScanned();
         int to = Math.min(cache.size(), offset + limit);
         Log.i(TAG, "getRecent cacheSize=" + cache.size() + " sublist=[" + offset + "," + to + ")");
         if (offset >= to) return Collections.emptyList();
         return new ArrayList<>(cache.subList(offset, to));
     }
 
-    @Override
-    public synchronized @Nullable CallRecord getByPath(@NonNull String path) {
-        ensureScanned();
-        for (CallRecord cr : cache) {
-            if (cr.path.equals(path)) return cr;
-        }
+    @Override public synchronized @Nullable CallRecord getByUri(@NonNull Uri uri) {
+        for (CallRecord cr : cache) if (cr.uri.equals(uri)) return cr;
         return null;
     }
     @Override public synchronized void reload() {
+        Log.i(TAG, "reload: force rescan");
         scanned = false;
         cache.clear();
+        ensureScanned();
     }
 }

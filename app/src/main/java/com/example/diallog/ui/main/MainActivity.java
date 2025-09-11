@@ -1,10 +1,17 @@
 package com.example.diallog.ui.main;
 
+import static android.os.FileObserver.CLOSE_WRITE;
+import static android.os.FileObserver.CREATE;
+import static android.os.FileObserver.MOVED_TO;
+
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.ContentObserver;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.FileObserver;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.DocumentsContract;
@@ -35,6 +42,7 @@ import com.example.diallog.ui.viewmodel.MainViewModel;
 import com.example.diallog.utils.PermissionHelper;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -68,24 +76,16 @@ public final class MainActivity extends AppCompatActivity {
             "m4a", "mp3", "aac", "wav"
     ));
 
+    private final Set<File> watchDirs = new HashSet<>(Arrays.asList(
+            new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "DialLogSamples"),
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+    ));
+    private DirWatcher dirWatcher;
+
+
     private ActivityResultLauncher<Intent> pickFolderLauncher;
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        registerAudioObserver();
-
-        if (System.currentTimeMillis() - lastRefreshAt > 1500) {
-            Log.i(TAG, "onStart: refreshing");
-            viewModel.refresh();
-            lastRefreshAt = System.currentTimeMillis();
-        }
-        Log.i(TAG, "onStart: refreshing");
-    }
-    @Override protected void onStop() {
-        super.onStop();
-        unregisterAudioObserver();
-    }
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -109,6 +109,18 @@ public final class MainActivity extends AppCompatActivity {
             viewModel.refresh();
         }
     }
+    @Override
+    protected void onStart() {
+        super.onStart();
+        registerAudioObserver();
+        startWatchingDirs();
+        Log.i(TAG, "onStart: refreshing");
+    }
+    @Override protected void onStop() {
+        super.onStop();
+        unregisterAudioObserver();
+        stopWatchingDirs();
+    }
 
     private void bindViews() {
         recyclerView = findViewById(R.id.rv_calls);
@@ -124,9 +136,9 @@ public final class MainActivity extends AppCompatActivity {
         });
     }
     private void setupRecycler() {
-        adapter = new CallAdapter(path -> {
+        adapter = new CallAdapter(itemUri -> {
             Intent i = new Intent(this, SummaryActivity.class);
-            i.putExtra("audioPath", path);
+            i.putExtra("audioUri", itemUri);
             startActivity(i);
         });
 
@@ -155,8 +167,8 @@ public final class MainActivity extends AppCompatActivity {
         Log.i(TAG, "observeViewmodel: set observers");
         viewModel.getItems().observe(this, items -> {
             Log.i(TAG, "items changed: " + (items == null ? -1 : items.size()));
-            adapter.submitList(items);
-            boolean showEmpty = (adapter.getItemCount() == 0) && !Boolean.TRUE.equals(viewModel.getLoading().getValue());
+            adapter.submitList(items == null ? new ArrayList<>() : new ArrayList<>(items));
+            boolean showEmpty = (items == null || items.isEmpty());
             emptyView.setVisibility(showEmpty ? View.VISIBLE : View.GONE);
             recyclerView.setVisibility(showEmpty ? View.GONE : View.VISIBLE);
         });
@@ -253,5 +265,68 @@ public final class MainActivity extends AppCompatActivity {
         String s = sp.getString(KEY_DIR_URI, null);
         return s == null ? null : Uri.parse(s);
     }
+
+    private void startWatchingDirs() {
+        if (dirWatcher != null) return;
+        dirWatcher = new DirWatcher(watchDirs, path -> {
+            Log.i(TAG, "File change detected -> scanFile: " + path);
+            MediaScannerConnection.scanFile(
+                    this,
+                    new String[]{ path },
+                    null,
+                    (scannedPath, uri) -> {
+                        Log.i(TAG, "scan completed: " + scannedPath + " uri=" + uri);
+                        // 메인스레드에서 목록 갱신
+                        new Handler(Looper.getMainLooper()).post(() -> {
+                            if (viewModel != null) viewModel.hardRefresh();
+                        });
+                    }
+            );
+        });
+        dirWatcher.start();
+        Log.i(TAG, "DirWatcher started");
+    }
+
+    private void stopWatchingDirs() {
+        if (dirWatcher != null) {
+            dirWatcher.stop();
+            dirWatcher = null;
+            Log.i(TAG, "DirWatcher stopped");
+        }
+    }
+
+
+    private static final class DirWatcher {
+        interface OnPathChanged { void onChanged(String path); }
+
+        private final Set<FileObserver> observers = new HashSet<>();
+        private final Handler main = new Handler(Looper.getMainLooper());
+        private long lastNotifiedAt = 0L;
+        private final long debounceMs = 500L;
+        private final OnPathChanged callback;
+
+        DirWatcher(Set<File> dirs, OnPathChanged cb) {
+            this.callback = cb;
+            for (File dir : dirs) {
+                if (dir != null && dir.isDirectory()) {
+                    observers.add(new FileObserver(dir.getAbsolutePath(),
+                            CREATE | MOVED_TO | CLOSE_WRITE) {
+                        @Override public void onEvent(int event, String file) {
+                            if (file == null) return;
+                            String path = new File(dir, file).getAbsolutePath();
+                            long now = System.currentTimeMillis();
+                            if (now - lastNotifiedAt < debounceMs) return;
+                            lastNotifiedAt = now;
+                            main.post(() -> callback.onChanged(path));
+                        }
+                    });
+                }
+            }
+        }
+        void start() { for (FileObserver fo : observers) fo.startWatching(); }
+        void stop()  { for (FileObserver fo : observers) fo.stopWatching();  }
+    }
+
+
 
 }

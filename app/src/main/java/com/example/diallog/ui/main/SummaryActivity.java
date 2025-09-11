@@ -1,6 +1,7 @@
 package com.example.diallog.ui.main;
 import com.example.diallog.BuildConfig;
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Toast;
 
@@ -13,6 +14,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.diallog.R;
 import com.example.diallog.data.network.ApiClient;
 import com.example.diallog.data.repository.*;
+import com.example.diallog.data.repository.cache.CachedTranscriber;
+import com.example.diallog.data.repository.cache.FileTranscriptCache;
+import com.example.diallog.data.repository.cache.TranscriptCache;
 import com.example.diallog.ui.adapter.TranscriptAdapter;
 import com.example.diallog.ui.viewmodel.SummaryVMFactory;
 import com.example.diallog.ui.viewmodel.SummaryViewModel;
@@ -43,9 +47,9 @@ public final class SummaryActivity extends AppCompatActivity {
         // 감지기(임시)
         LanguageDetector det = new NoopLanguageDetector();
         Transcriber routed = new RouterTranscriber(clova, google, det);
-
-        boolean useReal = BuildConfig.STT_API_KEY != null && !BuildConfig.STT_API_KEY.isEmpty();
-        Transcriber finalTranscriber = useReal ? routed : new MockTranscriber();
+        // Transcriber base = useReal ? routed : new MockTranscriber();
+        TranscriptCache tc = new FileTranscriptCache(this, 200);
+        Transcriber finalTranscriber = new CachedTranscriber(routed, tc);
 
         viewModel = new ViewModelProvider(
                 this, new SummaryVMFactory(finalTranscriber)
@@ -56,7 +60,8 @@ public final class SummaryActivity extends AppCompatActivity {
         viewModel.segments().observe(this, adapter::submitList);
         viewModel.error().observe(this, e -> { if (e != null) Toast.makeText(this, e, Toast.LENGTH_SHORT).show(); });
 
-        if (path != null) viewModel.transcribe(path);
+        Uri audioUri = getIntent().getParcelableExtra("audioUri");
+        if (audioUri != null) viewModel.transcribe(audioUri);
     }
 
 }

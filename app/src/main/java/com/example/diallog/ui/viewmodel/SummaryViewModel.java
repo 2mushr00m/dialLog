@@ -1,6 +1,8 @@
 package com.example.diallog.ui.viewmodel;
 
 
+import android.net.Uri;
+
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -31,13 +33,13 @@ public final class SummaryViewModel extends ViewModel {
     public LiveData<String> error(){ return error; }
 
 
-    public void transcribe(@NonNull String audioPath){
+    public void transcribe(@NonNull Uri audioUri){
         if (Boolean.TRUE.equals(loading.getValue())) return;
         loading.postValue(true);
         error.postValue(null);
         io.submit(() -> {
             try {
-                List<TranscriptSegment> list = transcriber.transcribe(audioPath);
+                List<TranscriptSegment> list = transcriber.transcribe(audioUri);
                 segments.postValue(list);
             } catch (Exception e){
                 error.postValue(e.getMessage());
@@ -49,9 +51,9 @@ public final class SummaryViewModel extends ViewModel {
 
     @Override protected void onCleared(){ io.shutdownNow(); }
 
-    public void loadMock(String audioPath) {
+    public void loadMock(@NonNull Uri audioUri) {
         Transcriber t = new MockTranscriber();
-        List<TranscriptSegment> list = t.transcribe(audioPath);
+        List<TranscriptSegment> list = t.transcribe(audioUri);
         segments.postValue(list);
     }
 

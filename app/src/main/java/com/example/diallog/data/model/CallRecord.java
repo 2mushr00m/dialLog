@@ -1,16 +1,18 @@
 package com.example.diallog.data.model;
 
+import android.net.Uri;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 public final class CallRecord {
-    public final String path;
+    public final @NonNull Uri uri;
     public final String fileName;
     public final long durationMs;
     public final long startedAtEpochMs;
 
-    public CallRecord(String path, String fileName, long durationMs, long startedAtEpochMs) {
-        this.path = path;
+    public CallRecord(@NonNull Uri uri, String fileName, long durationMs, long startedAtEpochMs) {
+        this.uri = uri;
         this.fileName = fileName;
         this.durationMs = durationMs;
         this.startedAtEpochMs = startedAtEpochMs;
@@ -22,7 +24,7 @@ public final class CallRecord {
                 "fileName='" + fileName + '\'' +
                 ", durationMs=" + durationMs +
                 ", startedAt=" + startedAtEpochMs +
-                ", path=" + path +
+                ", uri=" + uri +
                 '}';
     }
 
@@ -31,11 +33,9 @@ public final class CallRecord {
         if (this == obj) return true;
         if (!(obj instanceof CallRecord)) return false;
         CallRecord other = (CallRecord) obj;
-        return path.equals(other.path);
+        return uri.equals(other.uri);
     }
 
     @Override
-    public int hashCode() {
-        return path.hashCode();
-    }
+    public int hashCode() { return uri.hashCode(); }
 }

@@ -25,6 +25,7 @@ public final class MainViewModel extends ViewModel {
     private final MutableLiveData<Boolean> loading = new MutableLiveData<>(false);
     private final MutableLiveData<String> error = new MutableLiveData<>(null);
     private MutableLiveData<Boolean> endReached = new MutableLiveData<>(false);
+    private boolean initialized = false;
 
 
     private volatile boolean pendingRefresh = false;
@@ -88,11 +89,51 @@ public final class MainViewModel extends ViewModel {
             pendingRefresh = true;
             return;
         }
-        offset = 0;
-        endReached.setValue(false);
-        items.setValue(new ArrayList<>());
-        try { repo.reload(); } catch (Throwable ignore) {}
-        loadMore();
+        io.submit(() -> {
+            try {
+                if (!initialized) { // 최초 진입시에만 스캔
+                    if (repo instanceof com.example.diallog.data.repository.FileSystemCallRepository) {
+                        ((com.example.diallog.data.repository.FileSystemCallRepository) repo).ensureScanned();
+                    } else {
+                        // CallRepository가 다른 구현이어도 예외 없이 진행
+                    }
+                    initialized = true;
+                }
+                // 페이징 리셋
+                offset = 0;
+                endReached.postValue(false);
+                items.postValue(new ArrayList<>());
+                // 첫 페이지 적재
+                List<CallRecord> page = repo.getRecent(0, PAGE_SIZE);
+                items.postValue(page);
+                offset = page.size();
+                if (page.size() < PAGE_SIZE) endReached.postValue(true);
+            } catch (Exception ex) {
+                Log.e(TAG, "refresh(soft): error", ex);
+                error.postValue(ex.getMessage());
+            }
+        });
+    }
+
+    @MainThread public void hardRefresh() { // 하드 리프레시: 외부 변경 시 전체 재스캔
+        Log.i(TAG, "hardRefresh: force rescan");
+        if (Boolean.TRUE.equals(loading.getValue())) { pendingRefresh = true; return; }
+
+        io.submit(() -> {
+            try {
+                repo.reload(); // Repo에서 즉시 재스캔 수행
+                offset = 0;
+                endReached.postValue(false);
+                items.postValue(new ArrayList<>());
+                List<CallRecord> page = repo.getRecent(0, PAGE_SIZE);
+                items.postValue(page);
+                offset = page.size();
+                if (page.size() < PAGE_SIZE) endReached.postValue(true);
+            } catch (Exception ex) {
+                Log.e(TAG, "hardRefresh: error", ex);
+                error.postValue(ex.getMessage());
+            }
+        });
     }
 
     @Override protected void onCleared() { io.shutdownNow(); }

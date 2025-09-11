@@ -1,6 +1,7 @@
 package com.example.diallog.data.repository;
 
 import android.content.Context;
+import android.net.Uri;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,11 +20,11 @@ public final class MockCallRepository implements CallRepository {
 
     public MockCallRepository(@NonNull Context app) {
         // 캐시에 샘플 파일 복사 후 그 절대경로를 path로 사용
-        String p1 = copyRawToCache(app, R.raw.sample1, "mock_a.mp3").getAbsolutePath();
-        String p2 = copyRawToCache(app, R.raw.sample1, "mock_b.mp3").getAbsolutePath();
+        File a = copyRawToCache(app, R.raw.sample1, "mock_a.mp3");
+        File b = copyRawToCache(app, R.raw.sample1, "mock_b.mp3");
         long now = System.currentTimeMillis();
-        fake.add(new CallRecord(p1, "통화1", 120_000, now));
-        fake.add(new CallRecord(p2, "통화2", 60_000,  now - 3_600_000));
+        fake.add(new CallRecord(Uri.fromFile(a), "통화1", 120_000, now));
+        fake.add(new CallRecord(Uri.fromFile(b), "통화2",  60_000, now - 3_600_000));
     }
 
     @Override
@@ -33,9 +34,8 @@ public final class MockCallRepository implements CallRepository {
         return new ArrayList<>(fake.subList(offset, end));
     }
 
-    @Override
-    public @Nullable CallRecord getByPath(@NonNull String path) {
-        for (CallRecord r : fake) if (r.path.equals(path)) return r;
+    @Override public @Nullable CallRecord getByUri(@NonNull Uri uri) {
+        for (CallRecord r : fake) if (r.uri.equals(uri)) return r;
         return null;
     }
 

@@ -1,5 +1,7 @@
 package com.example.diallog.data.repository;
 
+import android.net.Uri;
+
 import androidx.annotation.NonNull;
 
 import com.example.diallog.data.model.TranscriptSegment;
@@ -17,8 +19,9 @@ public final class RouterTranscriber implements Transcriber {
         this.detector = detector;
     }
 
-    @Override public List<TranscriptSegment> transcribe(@NonNull String path) {
-        String lang = detector.detect(path);
-        return "ko-KR".equalsIgnoreCase(lang) ? clova.transcribe(path) : google.transcribe(path);
+
+    @Override public @NonNull List<TranscriptSegment> transcribe(@NonNull Uri audioUri) {
+        String lang = detector.detect(audioUri);
+        return "ko-KR".equalsIgnoreCase(lang) ? clova.transcribe(audioUri) : google.transcribe(audioUri);
     }
 }

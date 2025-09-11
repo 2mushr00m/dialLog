@@ -1,5 +1,10 @@
 package com.example.diallog.data.repository;
 
+import android.net.Uri;
+
+import androidx.annotation.NonNull;
+
 public interface LanguageDetector {
-    String detect(String audioPath);
+    @NonNull
+    String detect(@NonNull Uri audioUri);
 }

@@ -1,5 +1,6 @@
 package com.example.diallog.ui.adapter;
 
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class CallAdapter extends ListAdapter<CallRecord, CallAdapter.VH> {
-    public interface OnItemClick { void onClick(@NonNull String path); }
+    public interface OnItemClick { void onClick(@NonNull Uri uri); }
     @NonNull private final OnItemClick onItemClick;
 
 
@@ -31,7 +32,7 @@ public final class CallAdapter extends ListAdapter<CallRecord, CallAdapter.VH> {
             new DiffUtil.ItemCallback<CallRecord>() {
                 @Override
                 public boolean areItemsTheSame(@NonNull CallRecord a, @NonNull CallRecord b) {
-                    return safeEquals(a.path, b.path);
+                    return a.uri.equals(b.uri);
                 }
                 @Override
                 public boolean areContentsTheSame(@NonNull CallRecord a, @NonNull CallRecord b) {
@@ -60,7 +61,7 @@ public final class CallAdapter extends ListAdapter<CallRecord, CallAdapter.VH> {
             itemView.setOnClickListener(v -> {
                 int pos = getBindingAdapterPosition();
                 if (pos == RecyclerView.NO_POSITION) return;
-                if (bound != null) adapter.onItemClick.onClick(bound.path);
+                if (bound != null) adapter.onItemClick.onClick(bound.uri);
             });
         }
 
