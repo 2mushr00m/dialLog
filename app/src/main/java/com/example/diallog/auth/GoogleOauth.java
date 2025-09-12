@@ -41,6 +41,11 @@ public final class GoogleOauth implements AuthTokenProvider {
     }
 
     @Override
+    public synchronized void invalidate() {
+        cachedToken = null;
+        expiryEpochMs = 0L;
+    }
+    @Override
     public synchronized String getToken() throws Exception {
         long now = System.currentTimeMillis();
         if (cachedToken != null && now < expiryEpochMs - 60_000) {

@@ -4,15 +4,14 @@ import com.google.gson.annotations.SerializedName;
 
 import java.util.List;
 
-public class GoogleSttResponse {
-    public String text;
-    public List<Seg> segments;
-    public static final class Seg {
-        public String text;
-        @SerializedName(value = "startMs", alternate = {"start"})
-        public long startMs;
-        @SerializedName(value = "endMs", alternate = {"end"})
-        public long endMs;
+public final class GoogleSttResponse {
+    public List<Result> results;
+
+    public static final class Result {
+        public List<Alternative> alternatives;
     }
 
+    public static final class Alternative {
+        public String transcript;
+    }
 }

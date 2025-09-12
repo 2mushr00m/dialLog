@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.diallog.R;
+import com.example.diallog.auth.GoogleOauth;
 import com.example.diallog.data.network.ApiClient;
 import com.example.diallog.data.repository.*;
 import com.example.diallog.data.repository.cache.CachedTranscriber;
@@ -42,11 +43,18 @@ public final class SummaryActivity extends AppCompatActivity {
                 ApiClient.clova(),
                 "ko-KR"
         );
+        GoogleOauth oauth;
+        try {
+            oauth = new GoogleOauth(this, R.raw.service_account);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         Transcriber google = new GoogleTranscriber(
                 this,
-                ApiClient.google(this),
+                ApiClient.google(),
+                oauth,
                 "en-US"
-        );   // 미구현
+        );
 
         // 감지기(임시)
         LanguageDetector det = new NoopLanguageDetector();

@@ -27,18 +27,7 @@ public final class ApiClient {
         HttpLoggingInterceptor log = new HttpLoggingInterceptor();
         log.setLevel(HttpLoggingInterceptor.Level.HEADERS);
 
-        Interceptor peekJson = chain -> {
-            okhttp3.Response r = chain.proceed(chain.request());
-            String ct = r.header("Content-Type", "");
-            if (ct != null && ct.contains("application/json")) {
-                okhttp3.ResponseBody peek = r.peekBody(512 * 1024);
-                Log.d("ClovaJSON", peek.string());
-            }
-            return r;
-        };
-
         OkHttpClient ok = new OkHttpClient.Builder()
-                .addInterceptor(peekJson)
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(120, TimeUnit.SECONDS)
                 .addInterceptor(log)
@@ -51,33 +40,11 @@ public final class ApiClient {
                 .build();
     }
 
-    public static Retrofit google(Context app) {
+    public static Retrofit google() {
         HttpLoggingInterceptor log = new HttpLoggingInterceptor();
         log.setLevel(HttpLoggingInterceptor.Level.HEADERS);
-//        AuthTokenProvider tokenProvider = new GoogleOauth(app, R.raw.service_account);
-
-
-        Interceptor peekJson = chain -> {
-            String bearer = null;
-            try {
-//                bearer = "Bearer " + tokenProvider.getToken();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-            return chain.proceed(
-                    chain.request().newBuilder().addHeader("Authorization", bearer).build()
-            );
-//            okhttp3.Response r = chain.proceed(chain.request());
-//            String ct = r.header("Content-Type", "");
-//            if (ct != null && ct.contains("application/json")) {
-//                okhttp3.ResponseBody peek = r.peekBody(512 * 1024);
-//                Log.d("GoogleJSON", peek.string());
-//            }
-//            return r;
-        };
 
         OkHttpClient ok = new OkHttpClient.Builder()
-                .addInterceptor(peekJson)
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(120, TimeUnit.SECONDS)
                 .addInterceptor(log)
