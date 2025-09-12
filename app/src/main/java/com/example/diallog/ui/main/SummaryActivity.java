@@ -42,7 +42,11 @@ public final class SummaryActivity extends AppCompatActivity {
                 ApiClient.clova(),
                 "ko-KR"
         );
-        Transcriber google = new GoogleTranscriber();   // 더미, 미구현
+        Transcriber google = new GoogleTranscriber(
+                this,
+                ApiClient.google(this),
+                "en-US"
+        );   // 미구현
 
         // 감지기(임시)
         LanguageDetector det = new NoopLanguageDetector();

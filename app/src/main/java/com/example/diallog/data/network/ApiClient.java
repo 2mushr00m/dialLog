@@ -1,7 +1,13 @@
 package com.example.diallog.data.network;
 
+import android.content.Context;
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 
+import com.example.diallog.R;
+import com.example.diallog.auth.AuthTokenProvider;
+import com.example.diallog.auth.GoogleOauth;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -17,67 +23,70 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import com.example.diallog.BuildConfig;
 
 public final class ApiClient {
-    private static final String BASE_URL = "https://api.example.com/"; // TODO: 공급자 URL
-    private static volatile Retrofit RETROFIT;
-
-    public static Retrofit get(@NonNull String apiKey) {
-        if (RETROFIT != null) return RETROFIT;
-        HttpLoggingInterceptor log = new HttpLoggingInterceptor();
-        log.setLevel(HttpLoggingInterceptor.Level.BODY);
-
-        Interceptor auth = chain -> {
-            Request req = chain.request().newBuilder()
-                    .addHeader("Authorization", "Bearer " + apiKey) // TODO: 공급자 스펙에 맞게 변경
-                    .build();
-            return chain.proceed(req);
-        };
-
-        OkHttpClient ok = new OkHttpClient.Builder()
-                .addInterceptor(auth)
-                .addInterceptor(log)
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(120, TimeUnit.SECONDS)
-                .build();
-
-        Gson gson = new GsonBuilder().create();
-
-        RETROFIT = new Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .client(ok)
-                .addConverterFactory(GsonConverterFactory.create(gson))
-                .build();
-
-        return RETROFIT;
-    }
-
-
     public static Retrofit clova() {
         HttpLoggingInterceptor log = new HttpLoggingInterceptor();
         log.setLevel(HttpLoggingInterceptor.Level.HEADERS);
 
-        okhttp3.Interceptor peekJson = chain -> {
+        Interceptor peekJson = chain -> {
             okhttp3.Response r = chain.proceed(chain.request());
             String ct = r.header("Content-Type", "");
             if (ct != null && ct.contains("application/json")) {
-                okhttp3.ResponseBody peek = r.peekBody(512 * 1024); // 최대 512KB만 미리보기
-                android.util.Log.d("ClovaJSON", peek.string());     // segments 키 확인용
+                okhttp3.ResponseBody peek = r.peekBody(512 * 1024);
+                Log.d("ClovaJSON", peek.string());
             }
             return r;
         };
 
         OkHttpClient ok = new OkHttpClient.Builder()
                 .addInterceptor(peekJson)
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(120, TimeUnit.SECONDS)
                 .addInterceptor(log)
                 .build();
 
         return new Retrofit.Builder()
-                .baseUrl(BuildConfig.STT_BASE)
+                .baseUrl(BuildConfig.NAVER_CLOVA_STT_BASE)
                 .client(ok)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
     }
 
+    public static Retrofit google(Context app) {
+        HttpLoggingInterceptor log = new HttpLoggingInterceptor();
+        log.setLevel(HttpLoggingInterceptor.Level.HEADERS);
+//        AuthTokenProvider tokenProvider = new GoogleOauth(app, R.raw.service_account);
 
-    private ApiClient() {}
 
+        Interceptor peekJson = chain -> {
+            String bearer = null;
+            try {
+//                bearer = "Bearer " + tokenProvider.getToken();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            return chain.proceed(
+                    chain.request().newBuilder().addHeader("Authorization", bearer).build()
+            );
+//            okhttp3.Response r = chain.proceed(chain.request());
+//            String ct = r.header("Content-Type", "");
+//            if (ct != null && ct.contains("application/json")) {
+//                okhttp3.ResponseBody peek = r.peekBody(512 * 1024);
+//                Log.d("GoogleJSON", peek.string());
+//            }
+//            return r;
+        };
+
+        OkHttpClient ok = new OkHttpClient.Builder()
+                .addInterceptor(peekJson)
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(120, TimeUnit.SECONDS)
+                .addInterceptor(log)
+                .build();
+
+        return new Retrofit.Builder()
+                .baseUrl(BuildConfig.GOOGLE_STT_BASE)
+                .client(ok)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+    }
 }

@@ -14,6 +14,7 @@ import com.example.diallog.data.model.TranscriptSegment;
 import com.example.diallog.data.network.ClovaSpeechResponse;
 import com.example.diallog.data.network.ClovaSpeechApi;
 import com.example.diallog.BuildConfig;
+import com.example.diallog.utils.MediaResolver;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -41,16 +42,15 @@ public final class ClovaSpeechTranscriber implements Transcriber {
 
     @Override
     public @NonNull List<TranscriptSegment> transcribe(@NonNull Uri audioUri) {
-        File mediaFile = null;
-        boolean temp = false;
         try {
             // 1) 입력 파일 결정: 제공된 경로 우선, 없으면 데모용 raw 복사
-            mediaFile = resolveInputFile(audioUri);
-            temp = mediaFile.getParentFile() != null && mediaFile.getParentFile().equals(app.getCacheDir());
+            MediaResolver resolver = new MediaResolver(app);
+            MediaResolver.ResolvedAudio ra = resolver.resolveWithFallback(audioUri, app.getResources(), R.raw.sample1, "sample1.mp3");
 
             // 2) multipart 파트 구성
-            RequestBody mediaRb = RequestBody.create(mediaFile, parse(guessMimeType(mediaFile.getName())));
-            MultipartBody.Part media = MultipartBody.Part.createFormData("media", mediaFile.getName(), mediaRb);
+            RequestBody mediaRb = RequestBody.create(ra.file, parse(
+                    MediaResolver.guessMimeType(ra.file.getName())));
+            MultipartBody.Part media = MultipartBody.Part.createFormData("media", ra.file.getName(), mediaRb);
 
             String paramsJson =
                     "{"
@@ -66,11 +66,11 @@ public final class ClovaSpeechTranscriber implements Transcriber {
             // 3) 호출
             ClovaSpeechApi svc = retrofit.create(ClovaSpeechApi.class);
             Response<ClovaSpeechResponse> resp = svc.recognize(
-                    BuildConfig.STT_API_KEY, media, params, type
+                    BuildConfig.NAVER_CLOVA_STT_API_KEY, media, params, type
             ).execute();
 
             if (!resp.isSuccessful() || resp.body() == null) {
-                throw new RuntimeException("STT failed: HTTP " + resp.code());
+                throw new RuntimeException("ClovaSpeech failed: HTTP " + resp.code());
             }
 
             // 4) 매핑
@@ -83,64 +83,13 @@ public final class ClovaSpeechTranscriber implements Transcriber {
             } else if (b.text != null && !b.text.isEmpty()) {
                 out.add(new TranscriptSegment(b.text, 0, 0));
             }
+
+            if (ra.tempCopy)
+                ra.file.delete();
+
             return out;
         } catch (Exception e) {
             throw new RuntimeException("ClovaSpeech error: " + e.getMessage(), e);
         }
     }
-
-    private File resolveInputFile(@NonNull Uri uri) throws Exception {
-        String scheme = uri.getScheme();
-        if ("content".equalsIgnoreCase(scheme)) return copyContentToCache(uri, queryDisplayName(uri));
-        if ("file".equalsIgnoreCase(scheme)) {
-            File f = new File(uri.getPath());
-            if (f.exists() && f.length() > 0) return f;
-        }
-        if (scheme == null || scheme.isEmpty()) {
-            File f = new File(uri.toString());
-            if (f.exists() && f.length() > 0) return f;
-        }
-        return copyRawToCache(R.raw.sample1, "sample1.mp3");
-    }
-
-    private File copyRawToCache(int resId, String fileName) throws Exception {
-        File dst = new File(app.getCacheDir(), fileName);
-        try (InputStream in = app.getResources().openRawResource(resId);
-             FileOutputStream out = new FileOutputStream(dst)) {
-            byte[] buf = new byte[8192];
-            int n;
-            while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
-        }
-        return dst;
-    }
-    private File copyContentToCache(@NonNull Uri uri, String nameHint) throws Exception {
-        String name = (nameHint != null && !nameHint.isEmpty()) ? nameHint : "audio_" + System.currentTimeMillis();
-        File out = new File(app.getCacheDir(), name);
-        try (InputStream in = app.getContentResolver().openInputStream(uri);
-             OutputStream os = new FileOutputStream(out)) {
-            byte[] buf = new byte[8192]; int n;
-            while ((n = in.read(buf)) > 0) os.write(buf, 0, n);
-        }
-        return out;
-    }
-    private String queryDisplayName(@NonNull Uri uri) {
-        String[] proj = { MediaStore.MediaColumns.DISPLAY_NAME };
-        try (Cursor c = app.getContentResolver().query(uri, proj, null, null, null)) {
-            if (c != null && c.moveToFirst()) {
-                int i = c.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME);
-                if (i >= 0) return c.getString(i);
-            }
-        } catch (Exception ignore) {}
-        return null;
-    }
-    private String guessMimeType(@NonNull String fileName) {
-        String lower = fileName.toLowerCase();
-        if (lower.endsWith(".mp3")) return "audio/mp3";
-        if (lower.endsWith(".wav")) return "audio/wav";
-        if (lower.endsWith(".m4a")) return "audio/mp4";
-        if (lower.endsWith(".aac")) return "audio/aac";
-        if (lower.endsWith(".ogg")) return "audio/ogg";
-        return "application/octet-stream";
-    }
-
 }

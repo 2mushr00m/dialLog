@@ -27,13 +27,23 @@ android {
 
         buildConfigField(
             "String",
-            "STT_API_KEY",
-            "\"${localProps.getProperty("STT_API_KEY", "")}\""
+            "NAVER_CLOVA_STT_API_KEY",
+            "\"${localProps.getProperty("NAVER_CLOVA_STT_API_KEY", "")}\""
         )
         buildConfigField(
             "String",
-            "STT_BASE",
-            "\"${localProps.getProperty("STT_BASE", "")}\""
+            "NAVER_CLOVA_STT_BASE",
+            "\"${localProps.getProperty("NAVER_CLOVA_STT_BASE", "")}\""
+        )
+        buildConfigField(
+            "String",
+            "GOOGLE_STT_API_KEY",
+            "\"${localProps.getProperty("GOOGLE_STT_API_KEY", "")}\""
+        )
+        buildConfigField(
+            "String",
+            "GOOGLE_STT_BASE",
+            "\"${localProps.getProperty("GOOGLE_STT_BASE", "")}\""
         )
     }
 
@@ -68,20 +78,35 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation ("androidx.appcompat:appcompat:1.7.0")
-    implementation("com.google.android.material:material:1.12.0")
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.recyclerview)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    implementation("com.google.android.material:material:1.12.0")
+    implementation("com.google.mlkit:language-id:17.0.5")
 
     // Retrofit + Gson
     implementation("com.squareup.retrofit2:retrofit:3.0.0")
     implementation("com.squareup.retrofit2:converter-gson:3.0.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+
+
+
+    testImplementation(libs.junit)
+    testImplementation("com.squareup.okhttp3:okhttp:4.12.0")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("com.google.code.gson:gson:2.11.0")
+    testImplementation("com.google.mlkit:language-id:17.0.5")
+
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation("com.squareup.okhttp3:okhttp:4.12.0")
+    androidTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    androidTestImplementation("com.google.code.gson:gson:2.11.0")
+    androidTestImplementation("com.google.mlkit:language-id:17.0.5")
+
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
