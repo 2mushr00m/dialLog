@@ -22,7 +22,6 @@ public final class RouterTranscriber implements Transcriber {
         this.detector = detector;
     }
 
-
     @Override public @NonNull List<TranscriptSegment> transcribe(@NonNull Uri audioUri) {
         String lang = detector.detect(audioUri);
 //        return "ko-KR".equalsIgnoreCase(lang) ? clova.transcribe(audioUri) : google.transcribe(audioUri);

@@ -49,15 +49,20 @@ public final class SummaryActivity extends AppCompatActivity {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        retrofit2.Retrofit googleRetrofit = ApiClient.google();
         Transcriber google = new GoogleTranscriber(
                 this,
-                ApiClient.google(),
+                googleRetrofit,
                 oauth,
                 "en-US"
         );
 
         // 감지기(임시)
-        LanguageDetector det = new NoopLanguageDetector();
+        LanguageDetector det = new LanguageDetectHelper(
+                this,
+                googleRetrofit,
+                oauth
+        );
         Transcriber routed = new RouterTranscriber(clova, google, det);
         // Transcriber base = useReal ? routed : new MockTranscriber();
         TranscriptCache tc = new FileTranscriptCache(this, 200);
@@ -66,7 +71,6 @@ public final class SummaryActivity extends AppCompatActivity {
         viewModel = new ViewModelProvider(
                 this, new SummaryVMFactory(finalTranscriber)
         ).get(SummaryViewModel.class);
-        String path = getIntent().getStringExtra("audioPath");
 
         adapter.submitList(java.util.Collections.emptyList());
         viewModel.segments().observe(this, adapter::submitList);
