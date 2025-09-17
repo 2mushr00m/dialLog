@@ -42,15 +42,16 @@ public final class ClovaSpeechTranscriber implements Transcriber {
 
     @Override
     public @NonNull List<TranscriptSegment> transcribe(@NonNull Uri audioUri) {
+        MediaResolver.ResolvedAudio resolved = null;
         try {
             // 1) 입력 파일 결정: 제공된 경로 우선, 없으면 데모용 raw 복사
             MediaResolver resolver = new MediaResolver(app);
-            MediaResolver.ResolvedAudio ra = resolver.resolveWithFallback(audioUri, app.getResources(), R.raw.sample1, "sample1.mp3");
+            resolved = resolver.resolveWithFallback(audioUri, app.getResources(), R.raw.sample1, "sample1.mp3");
 
             // 2) multipart 파트 구성
-            RequestBody mediaRb = RequestBody.create(ra.file, parse(
-                    MediaResolver.guessMimeType(ra.file.getName())));
-            MultipartBody.Part media = MultipartBody.Part.createFormData("media", ra.file.getName(), mediaRb);
+            RequestBody mediaRb = RequestBody.create(resolved.file, parse(
+                    MediaResolver.guessMimeType(resolved.file.getName())));
+            MultipartBody.Part media = MultipartBody.Part.createFormData("media", resolved.file.getName(), mediaRb);
 
             String paramsJson =
                     "{"
@@ -84,12 +85,14 @@ public final class ClovaSpeechTranscriber implements Transcriber {
                 out.add(new TranscriptSegment(b.text, 0, 0));
             }
 
-            if (ra.tempCopy)
-                ra.file.delete();
-
             return out;
         } catch (Exception e) {
             throw new RuntimeException("ClovaSpeech error: " + e.getMessage(), e);
+        } finally {
+            if (resolved != null && resolved.tempCopy) {
+                //noinspection ResultOfMethodCallIgnored
+                resolved.file.delete();
+            }
         }
     }
 }

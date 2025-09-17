@@ -45,9 +45,9 @@ public final class GoogleTranscriber implements Transcriber {
     }
 
     @Override public @NonNull List<TranscriptSegment> transcribe(@NonNull Uri audioUri, @NonNull String languageCode) {
-        String effectiveLanguage = (languageCode == null || languageCode.isEmpty()) ? language : languageCode;
         MediaResolver.ResolvedAudio resolved = null;
         try {
+            // 1) 입력 파일 결정: 제공된 경로 우선, 없으면 데모용 raw 복사
             MediaResolver resolver = new MediaResolver(app);
             resolved = resolver.resolveWithFallback(audioUri, app.getResources(), R.raw.sample1, "sample1.mp3");
 

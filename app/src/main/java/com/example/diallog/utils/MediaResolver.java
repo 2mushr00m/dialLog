@@ -60,7 +60,9 @@ public final class MediaResolver {
         } catch (Exception ignore) {}
         return null;
     }
-    private @NonNull String safeName(@Nullable String n) { return (n!=null && !n.isEmpty()) ? n : "audio_"+System.currentTimeMillis()+".bin"; }
+    private @NonNull String safeName(@Nullable String n) {
+        return (n!=null && !n.isEmpty()) ? n : "audio_"+System.currentTimeMillis()+".bin";
+    }
     private static @NonNull File copyRawToCache(@NonNull Resources res, @NonNull File cache, int id, @NonNull String name) throws Exception {
         File dst = new File(cache, name);
         try (InputStream in = res.openRawResource(id); FileOutputStream out = new FileOutputStream(dst)) {

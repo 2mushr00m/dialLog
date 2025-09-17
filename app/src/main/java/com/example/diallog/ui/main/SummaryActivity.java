@@ -57,7 +57,6 @@ public final class SummaryActivity extends AppCompatActivity {
                 "en-US"
         );
 
-        // 감지기(임시)
         LanguageDetector det = new LanguageDetectHelper(
                 this,
                 googleRetrofit,
