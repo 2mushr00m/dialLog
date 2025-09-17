@@ -1,7 +1,5 @@
 package com.example.diallog.data.network;
 
-import com.google.gson.annotations.SerializedName;
-
 import java.util.List;
 
 public final class GoogleSttResponse {

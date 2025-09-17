@@ -1,28 +1,32 @@
 package com.example.diallog.auth;
 
 import android.content.Context;
-import android.os.Build;
 import android.util.Base64;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-
 import java.util.function.LongSupplier;
 
 public final class GoogleOauth implements AuthTokenProvider {
     private static final String SCOPE = "https://www.googleapis.com/auth/cloud-platform";
     private static final String DEFAULT_TOKEN_URL = "https://oauth2.googleapis.com/token";
+    private static final int TOKEN_TIMEOUT_MS = 30_000;
 
-    private final Context app;
     private final String clientEmail;
     private final PrivateKey privateKey;
     private final String tokenUrl;
@@ -36,24 +40,55 @@ public final class GoogleOauth implements AuthTokenProvider {
     }
 
     public GoogleOauth(Context app, int rawServiceAccountJson,
-                       String tokenUrl, LongSupplier clock) throws Exception {
-        this.app = app.getApplicationContext();
-        this.tokenUrl = tokenUrl;
-        this.clock = clock;
+                       String overrideTokenUrl, LongSupplier clock) throws Exception {
+        Objects.requireNonNull(app, "Context must not be null");
+        ServiceAccount account = loadServiceAccount(app, rawServiceAccountJson);
+        this.clientEmail = account.clientEmail;
+        this.privateKey = account.privateKey;
+        String resolvedTokenUrl = overrideTokenUrl;
+        if (resolvedTokenUrl == null || resolvedTokenUrl.isEmpty()) {
+            resolvedTokenUrl = account.tokenUri != null && !account.tokenUri.isEmpty()
+                    ? account.tokenUri
+                    : DEFAULT_TOKEN_URL;
+        }
+        this.tokenUrl = resolvedTokenUrl;
+        this.clock = clock != null ? clock : System::currentTimeMillis;
+    }
 
+    private static final class ServiceAccount {
+        final String clientEmail;
+        final PrivateKey privateKey;
+        final String tokenUri;
+
+        ServiceAccount(String clientEmail, PrivateKey privateKey, String tokenUri) {
+            this.clientEmail = clientEmail;
+            this.privateKey = privateKey;
+            this.tokenUri = tokenUri;
+        }
+    }
+
+
+    private ServiceAccount loadServiceAccount(Context app, int rawServiceAccountJson) throws Exception {
         try (InputStream in = app.getResources().openRawResource(rawServiceAccountJson)) {
-            byte[] buf = null;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                buf = in.readAllBytes();
+
+            byte[] jsonBytes = readAll(in);
+            if (jsonBytes.length == 0) {
+                throw new IOException("Service account JSON is empty");
             }
-            JSONObject json = new JSONObject(new String(buf));
-            clientEmail = json.getString("client_email");
-            String pkcs8 = json.getString("private_key")
-                    .replace("-----BEGIN PRIVATE KEY-----", "")
-                    .replace("-----END PRIVATE KEY-----", "")
-                    .replaceAll("\\s+", "");
-            byte[] decoded = Base64.decode(pkcs8, Base64.DEFAULT);
-            privateKey = KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(decoded));
+            JSONObject json = new JSONObject(new String(jsonBytes, StandardCharsets.UTF_8));
+            String email = json.optString("client_email", null);
+            if (email == null || email.isEmpty()) {
+                throw new IllegalStateException("Service account JSON missing client_email");
+            }
+            String privateKeyPem = json.optString("private_key", null);
+            if (privateKeyPem == null || privateKeyPem.isEmpty()) {
+                throw new IllegalStateException("Service account JSON missing private_key");
+            }
+            PrivateKey key = parsePrivateKey(privateKeyPem);
+            String tokenUri = json.optString("token_uri", null);
+            return new ServiceAccount(email, key, tokenUri);
+        } catch (JSONException e) {
+            throw new IllegalArgumentException("Invalid service account JSON: " + e.getMessage(), e);
         }
     }
 
@@ -62,61 +97,88 @@ public final class GoogleOauth implements AuthTokenProvider {
         cachedToken = null;
         expiryEpochMs = 0L;
     }
+
     @Override
     public synchronized String getToken() throws Exception {
         long now = clock.getAsLong();
-        if (cachedToken != null && now < expiryEpochMs - 60_000) {
+        if (cachedToken != null && now < expiryEpochMs - 60_000L) {
             return cachedToken;
         }
 
-        // JWT 생성
-        long iat = TimeUnit.MILLISECONDS.toSeconds(now);
-        long exp = iat + 3600; // 1시간
-        String header = Base64.encodeToString(
-                "{\"alg\":\"RS256\",\"typ\":\"JWT\"}".getBytes(),
-                Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
+        long issuedAt = TimeUnit.MILLISECONDS.toSeconds(now);
+        long expiresAt = issuedAt + 3600L;
+
+        String header = b64Url("{\"alg\":\"RS256\",\"typ\":\"JWT\"}".getBytes(StandardCharsets.UTF_8));
         String payload = new JSONObject()
                 .put("iss", clientEmail)
                 .put("scope", SCOPE)
                 .put("aud", tokenUrl)
-                .put("exp", exp)
-                .put("iat", iat)
+                .put("exp", expiresAt)
+                .put("iat", issuedAt)
                 .toString();
-        String payloadEnc = b64Url(payload.getBytes(StandardCharsets.UTF_8));
-        String unsigned = header + "." + payloadEnc;
+        String unsigned = header + '.' + b64Url(payload.getBytes(StandardCharsets.UTF_8));
 
-        // RS256 서명
-        Signature sig = Signature.getInstance("SHA256withRSA");
-        sig.initSign(privateKey);
-        sig.update(unsigned.getBytes(StandardCharsets.UTF_8));
-        String signature = b64Url(sig.sign());
+        Signature signature = Signature.getInstance("SHA256withRSA");
+        signature.initSign(privateKey);
+        signature.update(unsigned.getBytes(StandardCharsets.UTF_8));
+        String jwt = unsigned + '.' + b64Url(signature.sign());
 
-        String jwt = unsigned + "." + signature;
+        HttpURLConnection connection = (HttpURLConnection) new URL(tokenUrl).openConnection();
+        try {
+            connection.setDoOutput(true);
+            connection.setRequestMethod("POST");
+            connection.setConnectTimeout(TOKEN_TIMEOUT_MS);
+            connection.setReadTimeout(TOKEN_TIMEOUT_MS);
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 
-        // 토큰 교환
-        String body = "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=" + jwt;
-        byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);
-        HttpURLConnection conn = (HttpURLConnection) new java.net.URL(tokenUrl).openConnection();
-        conn.setDoOutput(true);
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-        conn.getOutputStream().write(bodyBytes);
+            String body = "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion="
+                    + URLEncoder.encode(jwt, "UTF-8");
+            byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);
+            try (OutputStream os = connection.getOutputStream()) {
+                os.write(bodyBytes);
+                os.flush();
+            }
 
-        try (InputStream in = conn.getInputStream()) {
-            String resp = new String(readAll(in), StandardCharsets.UTF_8);
-            JSONObject obj = new JSONObject(resp);
-            cachedToken = obj.getString("access_token");
-            int expiresIn = obj.getInt("expires_in");
-            expiryEpochMs = now + expiresIn * 1000L;
-            return cachedToken;
+            int code = connection.getResponseCode();
+            InputStream responseStream = code >= 200 && code < 300
+                    ? connection.getInputStream()
+                    : connection.getErrorStream();
+            String responseBody;
+            if (responseStream != null) {
+                try (InputStream in = responseStream) {
+                    responseBody = new String(readAll(in), StandardCharsets.UTF_8);
+                }
+            } else {
+                responseBody = "";
+            }
+
+            if (code < 200 || code >= 300) {
+                throw new IOException("Token exchange failed: HTTP " + code
+                        + (responseBody.isEmpty() ? "" : " - " + responseBody));
+            }
+
+            try {
+                JSONObject json = new JSONObject(responseBody);
+                String token = json.getString("access_token");
+                int expiresIn = json.optInt("expires_in", 3600);
+                cachedToken = token;
+                long refreshedAt = clock.getAsLong();
+                expiryEpochMs = refreshedAt + expiresIn * 1000L;
+                return token;
+            } catch (JSONException e) {
+                throw new IOException("Failed to parse OAuth response: " + e.getMessage(), e);
+            }
+        } finally {
+            connection.disconnect();
         }
     }
 
-    private static String b64Url(byte[] in) {
-        return Base64.encodeToString(in, Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
+    private static String b64Url(byte[] data) {
+        return Base64.encodeToString(data, Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
     }
 
-    private static byte[] readAll(InputStream in) throws java.io.IOException {
+
+    private static byte[] readAll(InputStream in) throws IOException {
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
         byte[] buf = new byte[4096];
         int n;
@@ -126,7 +188,7 @@ public final class GoogleOauth implements AuthTokenProvider {
         return bout.toByteArray();
     }
 
-    private static PrivateKey parsePkcs8(String pem) throws Exception {
+    private static PrivateKey parsePrivateKey(String pem) throws Exception {
         String clean = pem.replace("-----BEGIN PRIVATE KEY-----", "")
                 .replace("-----END PRIVATE KEY-----", "")
                 .replaceAll("\\s+", "");
