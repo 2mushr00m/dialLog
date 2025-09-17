@@ -50,18 +50,14 @@ public final class SummaryActivity extends AppCompatActivity {
             throw new RuntimeException(e);
         }
         retrofit2.Retrofit googleRetrofit = ApiClient.google();
-        Transcriber google = new GoogleTranscriber(
+        GoogleTranscriber google = new GoogleTranscriber(
                 this,
                 googleRetrofit,
                 oauth,
                 "en-US"
         );
 
-        LanguageDetector det = new LanguageDetectHelper(
-                this,
-                googleRetrofit,
-                oauth
-        );
+        LanguageDetector det = new LanguageDetectHelper();
         Transcriber routed = new RouterTranscriber(clova, google, det);
         // Transcriber base = useReal ? routed : new MockTranscriber();
         TranscriptCache tc = new FileTranscriptCache(this, 200);

@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import retrofit2.Call;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 
@@ -90,7 +91,13 @@ public final class GoogleTranscriber implements Transcriber {
 
     private Response<GoogleSttResponse> executeRecognize(GoogleSttRequest request) throws Exception {
         String token = tokenProvider.getToken();
-        return api.recognize("Bearer " + token, request).execute();
+
+        //
+        Call<GoogleSttResponse> call = api.recognize("Bearer " + token, request);
+        return call.execute();
+        //
+
+//        return api.recognize("Bearer " + token, request).execute();
     }
 
 
