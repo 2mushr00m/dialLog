@@ -4,6 +4,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -30,6 +31,7 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 
 public final class ClovaSpeechTranscriber implements Transcriber {
+    private static final String TAG = "ClovaTranscriber";
     private final Context app;
     private final Retrofit retrofit;
     private final String language;
@@ -43,10 +45,15 @@ public final class ClovaSpeechTranscriber implements Transcriber {
     @Override
     public @NonNull List<TranscriptSegment> transcribe(@NonNull Uri audioUri) {
         MediaResolver.ResolvedAudio resolved = null;
+        Log.i(TAG, "transcribe: start uri=" + audioUri);
         try {
             // 1) 입력 파일 결정: 제공된 경로 우선, 없으면 데모용 raw 복사
             MediaResolver resolver = new MediaResolver(app);
             resolved = resolver.resolveWithFallback(audioUri, app.getResources(), R.raw.sample1, "sample1.mp3");
+            Log.d(TAG, "transcribe: resolved file=" + resolved.file
+                    + " size=" + resolved.file.length()
+                    +" tempCopy=" + resolved.tempCopy);
+
 
             // 2) multipart 파트 구성
             RequestBody mediaRb = RequestBody.create(resolved.file, parse(
@@ -66,11 +73,14 @@ public final class ClovaSpeechTranscriber implements Transcriber {
 
             // 3) 호출
             ClovaSpeechApi svc = retrofit.create(ClovaSpeechApi.class);
+            Log.i(TAG, "transcribe: calling ClovaSpeech language=" + language);
             Response<ClovaSpeechResponse> resp = svc.recognize(
                     BuildConfig.NAVER_CLOVA_STT_API_KEY, media, params, type
             ).execute();
+            Log.i(TAG, "transcribe: response code=" + resp.code());
 
             if (!resp.isSuccessful() || resp.body() == null) {
+                Log.e(TAG, "transcribe: request failed code=" + resp.code());
                 throw new RuntimeException("ClovaSpeech failed: HTTP " + resp.code());
             }
 
@@ -78,18 +88,22 @@ public final class ClovaSpeechTranscriber implements Transcriber {
             ClovaSpeechResponse b = resp.body();
             List<TranscriptSegment> out = new ArrayList<>();
             if (b.segments != null && !b.segments.isEmpty()) {
+                Log.i(TAG, "transcribe: mapping " + b.segments.size() + " segments");
                 for (ClovaSpeechResponse.Seg s : b.segments) {
                     out.add(new TranscriptSegment(s.text, s.startMs, s.endMs));
                 }
             } else if (b.text != null && !b.text.isEmpty()) {
+                Log.i(TAG, "transcribe: single text fallback length=" + b.text.length());
                 out.add(new TranscriptSegment(b.text, 0, 0));
             }
 
             return out;
         } catch (Exception e) {
+            Log.e(TAG, "transcribe: failed", e);
             throw new RuntimeException("ClovaSpeech error: " + e.getMessage(), e);
         } finally {
             if (resolved != null && resolved.tempCopy) {
+                Log.d(TAG, "transcribe: deleting temp file=" + resolved.file);
                 //noinspection ResultOfMethodCallIgnored
                 resolved.file.delete();
             }

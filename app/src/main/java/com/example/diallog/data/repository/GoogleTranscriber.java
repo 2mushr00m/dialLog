@@ -2,9 +2,11 @@ package com.example.diallog.data.repository;
 
 import android.content.Context;
 import android.net.Uri;
+import android.text.TextUtils;
 import android.util.Base64;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.example.diallog.R;
 import com.example.diallog.auth.AuthTokenProvider;
@@ -51,10 +53,12 @@ public final class GoogleTranscriber implements Transcriber {
             MediaResolver resolver = new MediaResolver(app);
             resolved = resolver.resolveWithFallback(audioUri, app.getResources(), R.raw.sample1, "sample1.mp3");
 
+            int sampleRateHz = GoogleSttAudioHelper.extractSampleRateHz(resolved.file);
             byte[] audioBytes = readFile(resolved.file);
             String base64 = Base64.encodeToString(audioBytes, Base64.NO_WRAP);
 
-            GoogleSttRequest request = buildRequest(base64);
+            String effectiveLanguage = TextUtils.isEmpty(languageCode) ? language : languageCode;
+            GoogleSttRequest request = buildRequest(base64, effectiveLanguage, resolved.mime, sampleRateHz);
 
 
             Response<GoogleSttResponse> response = executeRecognize(request);
@@ -89,13 +93,16 @@ public final class GoogleTranscriber implements Transcriber {
         return api.recognize("Bearer " + token, request).execute();
     }
 
-    private GoogleSttRequest buildRequest(String base64Content) {
+
+    private GoogleSttRequest buildRequest(String base64Content,
+                                          String languageCode,
+                                          @Nullable String mimeType,
+                                          int sampleRateHz) {
         GoogleSttRequest request = new GoogleSttRequest();
         GoogleSttRequest.Config config = new GoogleSttRequest.Config();
-        config.encoding = "LINEAR16";
-        config.sampleRateHertz = 16000;
-        config.languageCode = language;
+        config.languageCode = languageCode;
         config.enableAutomaticPunctuation = true;
+        GoogleSttAudioHelper.applyEncoding(config, mimeType, sampleRateHz);
         request.config = config;
 
         GoogleSttRequest.Audio audio = new GoogleSttRequest.Audio();
