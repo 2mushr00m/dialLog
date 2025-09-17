@@ -1,8 +1,11 @@
 package com.example.diallog.ui.viewmodel;
 
+import android.net.Uri;
 import android.util.Log;
 
 import androidx.annotation.MainThread;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -12,8 +15,10 @@ import com.example.diallog.data.repository.CallRepository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public final class MainViewModel extends ViewModel {
     private static final String TAG = "MainVM";
@@ -81,61 +86,58 @@ public final class MainViewModel extends ViewModel {
     }
 
 
-    public void replaceRepository(CallRepository repo) {
-    }
+    public void setUserDirUri(@Nullable Uri uri) { repo.setUserDirUri(uri); }
     @MainThread public void refresh() {
         Log.i(TAG, "refresh: reset");
         if (Boolean.TRUE.equals(loading.getValue())) {
             pendingRefresh = true;
             return;
         }
-        io.submit(() -> {
-            try {
-                if (!initialized) { // 최초 진입시에만 스캔
-                    if (repo instanceof com.example.diallog.data.repository.FileSystemCallRepository) {
-                        ((com.example.diallog.data.repository.FileSystemCallRepository) repo).ensureScanned();
-                    } else {
-                        // CallRepository가 다른 구현이어도 예외 없이 진행
-                    }
-                    initialized = true;
-                }
-                // 페이징 리셋
-                offset = 0;
-                endReached.postValue(false);
-                items.postValue(new ArrayList<>());
-                // 첫 페이지 적재
-                List<CallRecord> page = repo.getRecent(0, PAGE_SIZE);
-                items.postValue(page);
-                offset = page.size();
-                if (page.size() < PAGE_SIZE) endReached.postValue(true);
-            } catch (Exception ex) {
-                Log.e(TAG, "refresh(soft): error", ex);
-                error.postValue(ex.getMessage());
-            }
-        });
+        io.submit(() -> executeRefreshPipeline("refresh"));
     }
 
     @MainThread public void hardRefresh() { // 하드 리프레시: 외부 변경 시 전체 재스캔
         Log.i(TAG, "hardRefresh: force rescan");
         if (Boolean.TRUE.equals(loading.getValue())) { pendingRefresh = true; return; }
 
-        io.submit(() -> {
-            try {
-                repo.reload(); // Repo에서 즉시 재스캔 수행
-                offset = 0;
-                endReached.postValue(false);
-                items.postValue(new ArrayList<>());
-                List<CallRecord> page = repo.getRecent(0, PAGE_SIZE);
-                items.postValue(page);
-                offset = page.size();
-                if (page.size() < PAGE_SIZE) endReached.postValue(true);
-            } catch (Exception ex) {
-                Log.e(TAG, "hardRefresh: error", ex);
-                error.postValue(ex.getMessage());
-            }
-        });
+        io.submit(() -> executeRefreshPipeline("hardRefresh"));
     }
 
     @Override protected void onCleared() { io.shutdownNow(); }
+
+    private void executeRefreshPipeline(@NonNull String reason) {
+        Throwable scanError = null;
+        try {
+            Future<?> future = repo.refreshAsync();
+            if (future != null) {
+                try {
+                    future.get();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                } catch (ExecutionException e) {
+                    scanError = e.getCause() != null ? e.getCause() : e;
+                    Log.e(TAG, reason + ": scan failed", scanError);
+                }
+            } else {
+                repo.ensureScanned();
+            }
+
+            offset = 0;
+            endReached.postValue(false);
+            items.postValue(new ArrayList<>());
+            List<CallRecord> page = repo.getRecent(0, PAGE_SIZE);
+            items.postValue(page);
+            offset = page.size();
+            if (page.size() < PAGE_SIZE) endReached.postValue(true);
+
+            if (scanError != null) {
+                error.postValue(scanError.getMessage());
+            }
+        } catch (Exception ex) {
+            Log.e(TAG, reason + ": error", ex);
+            error.postValue(ex.getMessage());
+        }
+    }
 
 }

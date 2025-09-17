@@ -32,48 +32,51 @@ public final class MlKitLanguageDetector implements LanguageDetector {
 
     @Override
     public @NonNull Optional<String> detect(@Nullable String text) {
-        String normalized = text == null ? "" : text.trim();
-        int length = normalized.length();
-        Log.i(TAG, "mlkit.detect start snippetLen=" + length);
-        if (normalized.isEmpty()) {
-            Log.i(TAG, "mlkit.detect result=unknown reason=empty");
-            return Optional.empty();
-        }
-        try {
-            List<IdentifiedLanguage> candidates = Tasks.await(identifier.identifyPossibleLanguages(normalized));
-            if (candidates == null) {
-                candidates = new ArrayList<>();
-            }
-            IdentifiedLanguage best = null;
-            for (IdentifiedLanguage lang : candidates) {
-                if (lang == null) {
-                    continue;
-                }
-                String tag = lang.getLanguageTag();
-                if (TextUtils.isEmpty(tag) || "und".equalsIgnoreCase(tag)) {
-                    continue;
-                }
-                float confidence = lang.getConfidence();
-                if (confidence < MIN_CONFIDENCE) {
-                    continue;
-                }
-                if (best == null || confidence > best.getConfidence()) {
-                    best = lang;
-                }
-            }
-            if (best == null) {
-                Log.i(TAG, "mlkit.detect result=unknown reason=no_candidate");
-                return Optional.empty();
-            }
-            String tag = best.getLanguageTag();
-            Log.i(TAG, "mlkit.detect result=" + tag + " confidence=" + best.getConfidence());
-            return Optional.of(tag);
-        } catch (Exception e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            Log.w(TAG, "mlkit.detect failure", e);
-            return Optional.empty();
-        }
+
+        return Optional.of("ko");
+
+//        String normalized = text == null ? "" : text.trim();
+//        int length = normalized.length();
+//        Log.i(TAG, "mlkit.detect start snippetLen=" + length);
+//        if (normalized.isEmpty()) {
+//            Log.i(TAG, "mlkit.detect result=unknown reason=empty");
+//            return Optional.empty();
+//        }
+//        try {
+//            List<IdentifiedLanguage> candidates = Tasks.await(identifier.identifyPossibleLanguages(normalized));
+//            if (candidates == null) {
+//                candidates = new ArrayList<>();
+//            }
+//            IdentifiedLanguage best = null;
+//            for (IdentifiedLanguage lang : candidates) {
+//                if (lang == null) {
+//                    continue;
+//                }
+//                String tag = lang.getLanguageTag();
+//                if (TextUtils.isEmpty(tag) || "und".equalsIgnoreCase(tag)) {
+//                    continue;
+//                }
+//                float confidence = lang.getConfidence();
+//                if (confidence < MIN_CONFIDENCE) {
+//                    continue;
+//                }
+//                if (best == null || confidence > best.getConfidence()) {
+//                    best = lang;
+//                }
+//            }
+//            if (best == null) {
+//                Log.i(TAG, "mlkit.detect result=unknown reason=no_candidate");
+//                return Optional.empty();
+//            }
+//            String tag = best.getLanguageTag();
+//            Log.i(TAG, "mlkit.detect result=" + tag + " confidence=" + best.getConfidence());
+//            return Optional.of(tag);
+//        } catch (Exception e) {
+//            if (e instanceof InterruptedException) {
+//                Thread.currentThread().interrupt();
+//            }
+//            Log.w(TAG, "mlkit.detect failure", e);
+//            return Optional.empty();
+//        }
     }
 }

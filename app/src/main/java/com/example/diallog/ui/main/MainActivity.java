@@ -73,7 +73,7 @@ public final class MainActivity extends AppCompatActivity {
             "Call", "Recorder", "record", "통화", "녹음", "CallRec", "CallRecord", "DialLog"
     ));
     private static final Set<String> AUDIO_EXT = new HashSet<>(Arrays.asList(
-            "m4a", "mp3", "aac", "wav"
+            "m4a", "mp3", "aac", "wav", "3gp", "amr", "ogg", "flac"
     ));
 
     private final Set<File> watchDirs = new HashSet<>(Arrays.asList(
@@ -225,9 +225,10 @@ public final class MainActivity extends AppCompatActivity {
                 saveDirUri(treeUri);
 
                 // repo 교체 후 새로고침
-                CallRepository repo = new FileSystemCallRepository(getApplicationContext(), treeUri, HINTS, AUDIO_EXT);
-                viewModel.replaceRepository(repo);
-                viewModel.refresh();
+                if (viewModel != null) {
+                    viewModel.setUserDirUri(treeUri);
+                    viewModel.refresh();
+                }
                 Toast.makeText(this, "폴더가 지정되었습니다.", Toast.LENGTH_SHORT).show();
             }
         );
