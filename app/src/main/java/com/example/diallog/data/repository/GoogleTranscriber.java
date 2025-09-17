@@ -10,7 +10,9 @@ import androidx.annotation.Nullable;
 
 import com.example.diallog.R;
 import com.example.diallog.auth.AuthTokenProvider;
+import com.example.diallog.data.model.TranscriptionResult;
 import com.example.diallog.data.model.TranscriptSegment;
+import com.example.diallog.data.network.GoogleOperationResponse;
 import com.example.diallog.data.network.GoogleSttApi;
 import com.example.diallog.data.network.GoogleSttRequest;
 import com.example.diallog.data.network.GoogleSttResponse;
@@ -23,12 +25,60 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import retrofit2.Call;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 
 public final class GoogleTranscriber implements Transcriber {
+    public enum Mode {
+        QUICK,
+        FULL
+    }
+
+    public static final class AudioInput {
+        @Nullable final Uri uri;
+        @Nullable final byte[] inlineBytes;
+        final int sampleRateHz;
+        @Nullable final String mimeType;
+        final boolean forceLinear16;
+
+        private AudioInput(@Nullable Uri uri,
+                           @Nullable byte[] inlineBytes,
+                           int sampleRateHz,
+                           @Nullable String mimeType,
+                           boolean forceLinear16) {
+            this.uri = uri;
+            this.inlineBytes = inlineBytes;
+            this.sampleRateHz = sampleRateHz;
+            this.mimeType = mimeType;
+            this.forceLinear16 = forceLinear16;
+        }
+
+        @NonNull
+        public static AudioInput forUri(@NonNull Uri uri) {
+            return new AudioInput(uri, null, 0, null, false);
+        }
+
+        @NonNull
+        public static AudioInput forLinear16(@NonNull byte[] pcm, int sampleRateHz) {
+            return new AudioInput(null, pcm, sampleRateHz, null, true);
+        }
+
+        boolean hasUri() {
+            return uri != null;
+        }
+
+        boolean hasInline() {
+            return inlineBytes != null;
+        }
+    }
+
+    private static final long QUICK_CALL_TIMEOUT_MS = 10_000L;
+    private static final long LONG_RUNNING_POLL_INTERVAL_MS = 2_000L;
+    private static final int MAX_LONG_RUNNING_POLLS = 180;
+
 
     private final Context app;
     private final GoogleSttApi api;
@@ -43,42 +93,103 @@ public final class GoogleTranscriber implements Transcriber {
     }
 
     @Override
-    public @NonNull List<TranscriptSegment> transcribe(@NonNull Uri audioUri) {
-        return transcribe(audioUri, language);
+    public @NonNull TranscriptionResult transcribe(@NonNull Uri audioUri) {
+        return transcribe(AudioInput.forUri(audioUri), language, Mode.FULL);
     }
 
-    @Override public @NonNull List<TranscriptSegment> transcribe(@NonNull Uri audioUri, @NonNull String languageCode) {
+    @Override
+    public @NonNull TranscriptionResult transcribe(@NonNull Uri audioUri, @NonNull String languageCode) {
+        return transcribe(AudioInput.forUri(audioUri), languageCode, Mode.FULL);
+    }
+
+
+    public @NonNull TranscriptionResult transcribe(@NonNull AudioInput input,
+                                                   @NonNull String languageCode,
+                                                   @NonNull Mode mode) {
+        if (mode == Mode.QUICK) {
+            return transcribeQuick(input, languageCode);
+        }
+        return transcribeFull(input, languageCode);
+    }
+
+    public @NonNull TranscriptionResult transcribe(@NonNull Uri audioUri,
+                                                   @NonNull String languageCode,
+                                                   @NonNull Mode mode) {
+        return transcribe(AudioInput.forUri(audioUri), languageCode, mode);
+    }
+
+    public @NonNull TranscriptionResult transcribeQuick(@NonNull byte[] pcm16k,
+                                                        int sampleRateHz,
+                                                        @NonNull String languageCode) {
+        return transcribe(AudioInput.forLinear16(pcm16k, sampleRateHz), languageCode, Mode.QUICK);
+    }
+
+
+
+    private TranscriptionResult transcribeQuick(@NonNull AudioInput input, @NonNull String languageCode) {
+        if (!input.hasInline()) {
+            throw new IllegalArgumentException("QUICK mode requires inline PCM content");
+        }
+        try {
+            String effectiveLanguage = TextUtils.isEmpty(languageCode) ? language : languageCode;
+            String base64 = Base64.encodeToString(input.inlineBytes, Base64.NO_WRAP);
+            GoogleSttRequest request = buildRequest(base64, effectiveLanguage, input.mimeType, input.sampleRateHz, input.forceLinear16);
+
+
+            Response<GoogleSttResponse> response = executeRecognize(request, QUICK_CALL_TIMEOUT_MS);
+            if (response.code() == 401 || response.code() == 403) {
+                tokenProvider.invalidate();
+                response = executeRecognize(request, QUICK_CALL_TIMEOUT_MS);
+            }
+
+            if (!response.isSuccessful() || response.body() == null) {
+                String errorMessage = extractError(response);
+
+                throw new IOException("Google STT quick failed: HTTP " + response.code() + errorMessage);
+            }
+
+            List<TranscriptSegment> segments = mapResponse(response.body());
+            return TranscriptionResult.interim(segments, null);
+        } catch (IOException ioe) {
+            throw new RuntimeException("Google STT I/O error: " + ioe.getMessage(), ioe);
+        } catch (Exception e) {
+            throw new RuntimeException("Google STT error: " + e.getMessage(), e);
+        }
+    }
+
+
+
+    private TranscriptionResult transcribeFull(@NonNull AudioInput input, @NonNull String languageCode) {
+        if (!input.hasUri()) {
+            throw new IllegalArgumentException("FULL mode requires a URI input");
+        }
         MediaResolver.ResolvedAudio resolved = null;
         try {
-            // 1) 입력 파일 결정: 제공된 경로 우선, 없으면 데모용 raw 복사
             MediaResolver resolver = new MediaResolver(app);
-            resolved = resolver.resolveWithFallback(audioUri, app.getResources(), R.raw.sample1, "sample1.mp3");
+            resolved = resolver.resolveWithFallback(input.uri, app.getResources(), R.raw.sample1, "sample1.mp3");
 
             int sampleRateHz = GoogleSttAudioHelper.extractSampleRateHz(resolved.file);
             byte[] audioBytes = readFile(resolved.file);
             String base64 = Base64.encodeToString(audioBytes, Base64.NO_WRAP);
 
             String effectiveLanguage = TextUtils.isEmpty(languageCode) ? language : languageCode;
-            GoogleSttRequest request = buildRequest(base64, effectiveLanguage, resolved.mime, sampleRateHz);
+            GoogleSttRequest request = buildRequest(base64, effectiveLanguage, resolved.mime, sampleRateHz, false);
 
-
-            Response<GoogleSttResponse> response = executeRecognize(request);
-            if (response.code() == 401 || response.code() == 403) {
-                tokenProvider.invalidate();
-                response = executeRecognize(request);
+            GoogleOperationResponse operation = startLongRunning(request);
+            GoogleSttResponse body;
+            if (operation.done && operation.response != null) {
+                body = operation.response;
+            } else {
+                body = awaitOperation(operation.name);
             }
 
-            if (!response.isSuccessful() || response.body() == null) {
-                String errorMessage = extractError(response);
-                throw new IOException("Google STT failed: HTTP " + response.code() + errorMessage);
-            }
-
-            String transcript = extractTranscript(response.body());
-            List<TranscriptSegment> segments = new ArrayList<>();
-            segments.add(new TranscriptSegment(transcript, 0, 0));
-            return segments;
+            List<TranscriptSegment> segments = mapResponse(body);
+            return TranscriptionResult.finalResult(segments, null);
         } catch (IOException ioe) {
             throw new RuntimeException("Google STT I/O error: " + ioe.getMessage(), ioe);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Google STT interrupted", ie);
         } catch (Exception e) {
             throw new RuntimeException("Google STT error: " + e.getMessage(), e);
         } finally {
@@ -89,27 +200,100 @@ public final class GoogleTranscriber implements Transcriber {
         }
     }
 
-    private Response<GoogleSttResponse> executeRecognize(GoogleSttRequest request) throws Exception {
+
+    private Response<GoogleSttResponse> executeRecognize(GoogleSttRequest request, long callTimeoutMs) throws Exception {
         String token = tokenProvider.getToken();
-
-        //
         Call<GoogleSttResponse> call = api.recognize("Bearer " + token, request);
+        if (callTimeoutMs > 0L) {
+            call.timeout().timeout(callTimeoutMs, TimeUnit.MILLISECONDS);
+        }
         return call.execute();
-        //
-
-//        return api.recognize("Bearer " + token, request).execute();
     }
 
+    private Response<GoogleOperationResponse> executeLongRunning(GoogleSttRequest request) throws Exception {
+        String token = tokenProvider.getToken();
+
+        Call<GoogleOperationResponse> call = api.longRunningRecognize("Bearer " + token, request);
+        return call.execute();
+    }
+
+    private Response<GoogleOperationResponse> executeGetOperation(String name) throws Exception {
+        String token = tokenProvider.getToken();
+        Call<GoogleOperationResponse> call = api.getOperation("Bearer " + token, name);
+        return call.execute();
+    }
+
+    private GoogleOperationResponse startLongRunning(GoogleSttRequest request) throws Exception {
+        Response<GoogleOperationResponse> response = executeLongRunning(request);
+        if (response.code() == 401 || response.code() == 403) {
+            tokenProvider.invalidate();
+            response = executeLongRunning(request);
+        }
+        if (!response.isSuccessful() || response.body() == null) {
+            String errorMessage = extractError(response);
+            throw new IOException("Google STT long running failed: HTTP " + response.code() + errorMessage);
+        }
+        GoogleOperationResponse body = response.body();
+        if (body.error != null) {
+            throw new IOException("Google STT long running error: " + body.error.message);
+        }
+        if (TextUtils.isEmpty(body.name) && !body.done) {
+            throw new IOException("Google STT long running did not return operation name");
+        }
+        return body;
+    }
+
+    private GoogleSttResponse awaitOperation(@NonNull String name) throws Exception {
+        int attempts = 0;
+        while (true) {
+            if (Thread.currentThread().isInterrupted()) {
+                throw new InterruptedException("Interrupted while polling Google STT operation");
+            }
+            Response<GoogleOperationResponse> poll = executeGetOperation(name);
+            if (poll.code() == 401 || poll.code() == 403) {
+                tokenProvider.invalidate();
+                poll = executeGetOperation(name);
+            }
+            if (!poll.isSuccessful() || poll.body() == null) {
+                String errorMessage = extractError(poll);
+                throw new IOException("Google STT operation poll failed: HTTP " + poll.code() + errorMessage);
+            }
+            GoogleOperationResponse body = poll.body();
+            if (body.error != null) {
+                throw new IOException("Google STT operation error: " + body.error.message);
+            }
+            if (body.done && body.response != null) {
+                return body.response;
+            }
+            attempts++;
+            if (attempts >= MAX_LONG_RUNNING_POLLS) {
+                throw new IOException("Google STT operation timed out");
+            }
+            try {
+                Thread.sleep(LONG_RUNNING_POLL_INTERVAL_MS);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw ie;
+            }
+        }
+    }
 
     private GoogleSttRequest buildRequest(String base64Content,
                                           String languageCode,
                                           @Nullable String mimeType,
-                                          int sampleRateHz) {
+                                          int sampleRateHz,
+                                          boolean forceLinear16) {
         GoogleSttRequest request = new GoogleSttRequest();
         GoogleSttRequest.Config config = new GoogleSttRequest.Config();
-        config.languageCode = languageCode;
+        config.languageCode = TextUtils.isEmpty(languageCode) ? language : languageCode;
         config.enableAutomaticPunctuation = true;
-        GoogleSttAudioHelper.applyEncoding(config, mimeType, sampleRateHz);
+        if (forceLinear16) {
+            config.encoding = "LINEAR16";
+            int effectiveRate = sampleRateHz > 0 ? sampleRateHz : 16_000;
+            config.sampleRateHertz = effectiveRate;
+        } else {
+            GoogleSttAudioHelper.applyEncoding(config, mimeType, sampleRateHz);
+        }
         request.config = config;
 
         GoogleSttRequest.Audio audio = new GoogleSttRequest.Audio();
@@ -118,19 +302,33 @@ public final class GoogleTranscriber implements Transcriber {
         return request;
     }
 
-    private static String extractTranscript(GoogleSttResponse body) {
+    private static List<TranscriptSegment> mapResponse(@Nullable GoogleSttResponse body) {
+        List<TranscriptSegment> segments = new ArrayList<>();
         if (body == null || body.results == null || body.results.isEmpty()) {
-            return "";
+            return segments;
         }
-        GoogleSttResponse.Result firstResult = body.results.get(0);
-        if (firstResult == null || firstResult.alternatives == null || firstResult.alternatives.isEmpty()) {
-            return "";
+
+        StringBuilder builder = new StringBuilder();
+        for (GoogleSttResponse.Result result : body.results) {
+            if (result == null || result.alternatives == null || result.alternatives.isEmpty()) {
+                continue;
+            }
+            GoogleSttResponse.Alternative alternative = result.alternatives.get(0);
+            if (alternative == null || alternative.transcript == null) {
+                continue;
+            }
+            if (builder.length() > 0 && !alternative.transcript.startsWith(" ")) {
+                builder.append(' ');
+            }
+            builder.append(alternative.transcript);
         }
-        GoogleSttResponse.Alternative firstAlternative = firstResult.alternatives.get(0);
-        return firstAlternative != null && firstAlternative.transcript != null
-                ? firstAlternative.transcript
-                : "";
+        String transcript = builder.toString().trim();
+        if (!transcript.isEmpty()) {
+            segments.add(new TranscriptSegment(transcript, 0, 0));
+        }
+        return segments;
     }
+
 
     private static byte[] readFile(File file) throws IOException {
         try (InputStream in = new FileInputStream(file);
@@ -144,7 +342,7 @@ public final class GoogleTranscriber implements Transcriber {
         }
     }
 
-    private static String extractError(Response<GoogleSttResponse> response) {
+    private static String extractError(Response<?> response) {
         try {
             if (response.errorBody() == null) {
                 return "";

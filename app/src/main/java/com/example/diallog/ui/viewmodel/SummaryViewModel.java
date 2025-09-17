@@ -9,12 +9,16 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.example.diallog.data.model.TranscriptSegment;
+import com.example.diallog.data.model.TranscriptionResult;
 import com.example.diallog.data.repository.MockTranscriber;
 import com.example.diallog.data.repository.Transcriber;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
+
 
 public final class SummaryViewModel extends ViewModel {
     private final Transcriber transcriber;
@@ -22,7 +26,9 @@ public final class SummaryViewModel extends ViewModel {
     private final MutableLiveData<Boolean> loading = new MutableLiveData<>(false);
     private final MutableLiveData<String> error = new MutableLiveData<>(null);
     private final ExecutorService io = Executors.newSingleThreadExecutor();
-
+    private final AtomicInteger jobCounter = new AtomicInteger();
+    private final Object jobLock = new Object();
+    private Future<?> runningJob;
 
     public SummaryViewModel(Transcriber transcriber) {
         this.transcriber = transcriber;
@@ -34,27 +40,61 @@ public final class SummaryViewModel extends ViewModel {
 
 
     public void transcribe(@NonNull Uri audioUri){
-        if (Boolean.TRUE.equals(loading.getValue())) return;
+        int jobId = jobCounter.incrementAndGet();
+        Future<?> previous;
+        synchronized (jobLock) {
+            previous = runningJob;
+            runningJob = null;
+        }
+        if (previous != null) {
+            previous.cancel(true);
+        }
         loading.postValue(true);
         error.postValue(null);
-        io.submit(() -> {
+        Future<?> future = io.submit(() -> {
             try {
-                List<TranscriptSegment> list = transcriber.transcribe(audioUri);
-                segments.postValue(list);
+                TranscriptionResult result = transcriber.transcribe(audioUri);
+                if (Thread.currentThread().isInterrupted()) {
+                    return;
+                }
+                if (!result.isFinal) {
+                    return;
+                }
+                if (jobCounter.get() != jobId) {
+                    return;
+                }
+                segments.postValue(result.segments);
             } catch (Exception e){
+                if (jobCounter.get() != jobId) {
+                    return;
+                }
                 error.postValue(e.getMessage());
             } finally {
-                loading.postValue(false);
+                if (jobCounter.get() == jobId) {
+                    loading.postValue(false);
+                }
             }
         });
+        synchronized (jobLock) {
+            runningJob = future;
+        }
     }
 
-    @Override protected void onCleared(){ io.shutdownNow(); }
+
+    @Override protected void onCleared(){
+        synchronized (jobLock) {
+            if (runningJob != null) {
+                runningJob.cancel(true);
+                runningJob = null;
+            }
+        }
+        io.shutdownNow();
+    }
 
     public void loadMock(@NonNull Uri audioUri) {
         Transcriber t = new MockTranscriber();
-        List<TranscriptSegment> list = t.transcribe(audioUri);
-        segments.postValue(list);
+        TranscriptionResult result = t.transcribe(audioUri);
+        segments.postValue(result.segments);
     }
 
 }

@@ -70,14 +70,14 @@ public final class MainActivity extends AppCompatActivity {
 
 
     private static final Set<String> HINTS = new HashSet<>(Arrays.asList(
-            "Call", "Recorder", "record", "통화", "녹음", "CallRec", "CallRecord", "DialLogSamples"
+            "Call", "Recorder", "record", "통화", "녹음", "CallRec", "CallRecord", "DialLog"
     ));
     private static final Set<String> AUDIO_EXT = new HashSet<>(Arrays.asList(
             "m4a", "mp3", "aac", "wav"
     ));
 
     private final Set<File> watchDirs = new HashSet<>(Arrays.asList(
-            new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "DialLogSamples"),
+            new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "DialLog"),
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
     ));

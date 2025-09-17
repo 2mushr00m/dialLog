@@ -1,9 +1,8 @@
 package com.example.diallog.data.repository;
 
 import android.content.Context;
-import android.database.Cursor;
 import android.net.Uri;
-import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -12,19 +11,15 @@ import static okhttp3.MediaType.parse;
 
 import com.example.diallog.R;
 import com.example.diallog.data.model.TranscriptSegment;
+import com.example.diallog.data.model.TranscriptionResult;
 import com.example.diallog.data.network.ClovaSpeechResponse;
 import com.example.diallog.data.network.ClovaSpeechApi;
 import com.example.diallog.BuildConfig;
 import com.example.diallog.utils.MediaResolver;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import retrofit2.Response;
@@ -43,7 +38,18 @@ public final class ClovaSpeechTranscriber implements Transcriber {
     }
 
     @Override
-    public @NonNull List<TranscriptSegment> transcribe(@NonNull Uri audioUri) {
+    public @NonNull TranscriptionResult transcribe(@NonNull Uri audioUri) {
+        return transcribe(audioUri, language);
+    }
+
+    @Override
+    public @NonNull TranscriptionResult transcribe(@NonNull Uri audioUri, @NonNull String languageCode) {
+        List<TranscriptSegment> segments = transcribeInternal(audioUri, languageCode);
+        return TranscriptionResult.finalResult(segments, null);
+    }
+
+    @NonNull
+    private List<TranscriptSegment> transcribeInternal(@NonNull Uri audioUri, @NonNull String languageCode) {
         MediaResolver.ResolvedAudio resolved = null;
         Log.i(TAG, "transcribe: start uri=" + audioUri);
         try {
@@ -56,24 +62,24 @@ public final class ClovaSpeechTranscriber implements Transcriber {
 
 
             // 2) multipart 파트 구성
-            RequestBody mediaRb = RequestBody.create(resolved.file, parse(
-                    MediaResolver.guessMimeType(resolved.file.getName())));
+            RequestBody mediaRb = RequestBody.create(resolved.file, parse(MediaResolver.guessMimeType(resolved.file.getName())));
             MultipartBody.Part media = MultipartBody.Part.createFormData("media", resolved.file.getName(), mediaRb);
 
+            String effectiveLanguage = TextUtils.isEmpty(languageCode) ? language : languageCode;
             String paramsJson =
-                    "{"
-                            + "\"language\":\"" + language + "\","
-                            + "\"completion\":\"sync\","
-                            + "\"fullText\":true,"
-                            + "\"wordAlignment\":true,"
-                            + "\"diarization\":{\"enable\":true}"
-                            + "}";
+                    "{" +
+                            "\"language\":\"" + effectiveLanguage + "\"," +
+                            "\"completion\":\"sync\"," +
+                            "\"fullText\":true," +
+                            "\"wordAlignment\":true," +
+                            "\"diarization\":{\"enable\":true}" +
+                            "}";
             RequestBody params = RequestBody.create(parse("application/json"), paramsJson);
             RequestBody type = RequestBody.create(parse("text/plain"), "application/json");
 
             // 3) 호출
             ClovaSpeechApi svc = retrofit.create(ClovaSpeechApi.class);
-            Log.i(TAG, "transcribe: calling ClovaSpeech language=" + language);
+            Log.i(TAG, "transcribe: calling ClovaSpeech language=" + effectiveLanguage);
             Response<ClovaSpeechResponse> resp = svc.recognize(
                     BuildConfig.NAVER_CLOVA_STT_API_KEY, media, params, type
             ).execute();

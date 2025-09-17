@@ -21,6 +21,8 @@ import com.example.diallog.data.repository.cache.TranscriptCache;
 import com.example.diallog.ui.adapter.TranscriptAdapter;
 import com.example.diallog.ui.viewmodel.SummaryVMFactory;
 import com.example.diallog.ui.viewmodel.SummaryViewModel;
+import com.example.diallog.utils.AudioSnipper;
+import com.example.diallog.utils.MlKitLanguageDetector;
 
 public final class SummaryActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
@@ -57,9 +59,9 @@ public final class SummaryActivity extends AppCompatActivity {
                 "en-US"
         );
 
-        LanguageDetector det = new LanguageDetectHelper();
-        Transcriber routed = new RouterTranscriber(clova, google, det);
-        // Transcriber base = useReal ? routed : new MockTranscriber();
+        LanguageDetector det = new MlKitLanguageDetector();
+        AudioSnipper snipper = new AudioSnipper(this, R.raw.sample1, "sample1_snip.mp3");
+        Transcriber routed = new RouterTranscriber(clova, google, det, snipper);
         TranscriptCache tc = new FileTranscriptCache(this, 200);
         Transcriber finalTranscriber = new CachedTranscriber(routed, tc);
 

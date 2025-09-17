@@ -5,8 +5,10 @@ import android.net.Uri;
 import androidx.annotation.NonNull;
 
 import com.example.diallog.data.model.TranscriptSegment;
+import com.example.diallog.data.model.TranscriptionResult;
 import com.example.diallog.data.repository.Transcriber;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public final class CachedTranscriber implements Transcriber {
@@ -18,11 +20,16 @@ public final class CachedTranscriber implements Transcriber {
         this.cache = cache;
     }
 
-    @Override public @NonNull List<TranscriptSegment> transcribe(@NonNull Uri audioUri) {
+    @Override
+    public @NonNull TranscriptionResult transcribe(@NonNull Uri audioUri) {
         List<TranscriptSegment> hit = cache.get(audioUri);
-        if (!hit.isEmpty()) return hit;
-        List<TranscriptSegment> fresh = delegate.transcribe(audioUri);
-        if (fresh != null && !fresh.isEmpty()) cache.put(audioUri, fresh);
+        if (!hit.isEmpty()) {
+            return TranscriptionResult.finalResult(hit, null);
+        }
+        TranscriptionResult fresh = delegate.transcribe(audioUri);
+        if (fresh != null && fresh.isFinal && fresh.segments != null && !fresh.segments.isEmpty()) {
+            cache.put(audioUri, new ArrayList<>(fresh.segments));
+        }
         return fresh;
     }
 }

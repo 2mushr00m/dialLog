@@ -5,12 +5,9 @@ import android.net.Uri;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-public interface LanguageDetector {
-    enum DetectResult {
-        KO,
-        NON_KO,
-        UNKNOWN
-    }
+import java.util.Optional;
 
-    @NonNull DetectResult detectFromText(@Nullable String text);
+public interface LanguageDetector {
+    @NonNull
+    Optional<String> detect(@Nullable String text);
 }

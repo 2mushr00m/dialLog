@@ -6,12 +6,14 @@ import androidx.annotation.NonNull;
 
 import java.util.List;
 import com.example.diallog.data.model.TranscriptSegment;
+import com.example.diallog.data.model.TranscriptionResult;
 
 
 public interface Transcriber {
-    @NonNull List<TranscriptSegment> transcribe(@NonNull Uri audioUri);
+    @NonNull
+    TranscriptionResult transcribe(@NonNull Uri audioUri);
 
-    default @NonNull List<TranscriptSegment> transcribe(@NonNull Uri audioUri, @NonNull String languageCode) {
+    default @NonNull TranscriptionResult transcribe(@NonNull Uri audioUri, @NonNull String languageCode) {
         return transcribe(audioUri);
     }
 }
