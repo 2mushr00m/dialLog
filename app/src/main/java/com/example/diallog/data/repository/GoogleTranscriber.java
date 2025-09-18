@@ -76,8 +76,9 @@ public final class GoogleTranscriber implements Transcriber {
     }
 
     private static final long QUICK_CALL_TIMEOUT_MS = 10_000L;
-    private static final long LONG_RUNNING_POLL_INTERVAL_MS = 2_000L;
-    private static final int MAX_LONG_RUNNING_POLLS = 180;
+    private static final long LONG_RUNNING_INITIAL_DELAY_MS = 1_000L;
+    private static final long LONG_RUNNING_MAX_DELAY_MS = 10_000L;
+    private static final int MAX_LONG_RUNNING_POLLS = 60;
 
 
     private final Context app;
@@ -245,6 +246,7 @@ public final class GoogleTranscriber implements Transcriber {
 
     private GoogleSttResponse awaitOperation(@NonNull String name) throws Exception {
         int attempts = 0;
+        long delayMs = LONG_RUNNING_INITIAL_DELAY_MS;
         while (true) {
             if (Thread.currentThread().isInterrupted()) {
                 throw new InterruptedException("Interrupted while polling Google STT operation");
@@ -262,19 +264,23 @@ public final class GoogleTranscriber implements Transcriber {
             if (body.error != null) {
                 throw new IOException("Google STT operation error: " + body.error.message);
             }
-            if (body.done && body.response != null) {
-                return body.response;
+            if (body.done) {
+                if (body.response != null) {
+                    return body.response;
+                }
+                return new GoogleSttResponse();
             }
             attempts++;
             if (attempts >= MAX_LONG_RUNNING_POLLS) {
                 throw new IOException("Google STT operation timed out");
             }
             try {
-                Thread.sleep(LONG_RUNNING_POLL_INTERVAL_MS);
+                Thread.sleep(Math.max(1L, delayMs));
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 throw ie;
             }
+            delayMs = Math.min(delayMs * 2L, LONG_RUNNING_MAX_DELAY_MS);
         }
     }
 
@@ -287,6 +293,11 @@ public final class GoogleTranscriber implements Transcriber {
         GoogleSttRequest.Config config = new GoogleSttRequest.Config();
         config.languageCode = TextUtils.isEmpty(languageCode) ? language : languageCode;
         config.enableAutomaticPunctuation = true;
+        config.enableWordTimeOffsets = true;
+        config.maxAlternatives = 1;
+        if (!forceLinear16) {
+            config.model = "latest_long";
+        }
         if (forceLinear16) {
             config.encoding = "LINEAR16";
             int effectiveRate = sampleRateHz > 0 ? sampleRateHz : 16_000;
@@ -308,25 +319,111 @@ public final class GoogleTranscriber implements Transcriber {
             return segments;
         }
 
-        StringBuilder builder = new StringBuilder();
+        long lastEndMs = 0L;
         for (GoogleSttResponse.Result result : body.results) {
             if (result == null || result.alternatives == null || result.alternatives.isEmpty()) {
                 continue;
             }
             GoogleSttResponse.Alternative alternative = result.alternatives.get(0);
-            if (alternative == null || alternative.transcript == null) {
+            if (alternative == null) {
                 continue;
             }
-            if (builder.length() > 0 && !alternative.transcript.startsWith(" ")) {
-                builder.append(' ');
+            String transcript = alternative.transcript != null ? alternative.transcript.trim() : "";
+            if (transcript.isEmpty()) {
+                continue;
             }
-            builder.append(alternative.transcript);
-        }
-        String transcript = builder.toString().trim();
-        if (!transcript.isEmpty()) {
-            segments.add(new TranscriptSegment(transcript, 0, 0));
+
+            long startMs = lastEndMs;
+            long endMs = lastEndMs;
+
+            if (alternative.words != null && !alternative.words.isEmpty()) {
+                GoogleSttResponse.WordInfo firstWord = null;
+                GoogleSttResponse.WordInfo lastWord = null;
+                GoogleSttResponse.WordInfo fallbackWord = null;
+                for (GoogleSttResponse.WordInfo wordInfo : alternative.words) {
+                    if (wordInfo == null) {
+                        continue;
+                    }
+                    if (fallbackWord == null) {
+                        fallbackWord = wordInfo;
+                    }
+                    if (firstWord == null && wordInfo.startTime != null) {
+                        firstWord = wordInfo;
+                    }
+                    if (wordInfo.endTime != null) {
+                        lastWord = wordInfo;
+                    } else if (wordInfo.startTime != null && lastWord == null) {
+                        lastWord = wordInfo;
+                    }
+                }
+
+                if (firstWord == null) {
+                    firstWord = fallbackWord;
+                }
+                if (lastWord == null) {
+                    lastWord = fallbackWord;
+                }
+
+                long candidateStart = toMs(firstWord != null ? firstWord.startTime : null);
+                long candidateEnd = toMs(lastWord != null ? lastWord.endTime : null);
+                if (candidateEnd < 0 && lastWord != null) {
+                    candidateEnd = toMs(lastWord.startTime);
+                }
+
+                if (candidateStart >= 0) {
+                    startMs = candidateStart;
+                }
+                if (candidateEnd >= 0) {
+                    endMs = candidateEnd;
+                } else if (candidateStart >= 0) {
+                    endMs = candidateStart;
+                }
+            }
+
+            if (endMs < startMs) {
+                endMs = startMs;
+            }
+
+            segments.add(new TranscriptSegment(transcript, startMs, endMs));
+            if (endMs > lastEndMs) {
+                lastEndMs = endMs;
+            }
         }
         return segments;
+    }
+
+
+    private static long toMs(@Nullable GoogleSttResponse.TimeOffset offset) {
+        if (offset == null) {
+            return -1L;
+        }
+        long seconds = 0L;
+        double fractional = 0d;
+        if (!TextUtils.isEmpty(offset.seconds)) {
+            String secondsStr = offset.seconds.trim();
+            if (secondsStr.endsWith("s")) {
+                secondsStr = secondsStr.substring(0, secondsStr.length() - 1);
+            }
+            if (!secondsStr.isEmpty()) {
+                try {
+                    seconds = Long.parseLong(secondsStr);
+                } catch (NumberFormatException nfe) {
+                    try {
+                        double totalSeconds = Double.parseDouble(secondsStr);
+                        seconds = (long) Math.floor(totalSeconds);
+                        fractional = totalSeconds - seconds;
+                    } catch (NumberFormatException ignored) {
+                        return -1L;
+                    }
+                }
+            }
+        }
+        long millis = seconds * 1000L;
+        if (fractional > 0d) {
+            millis += Math.round(fractional * 1000d);
+        }
+        millis += Math.round(offset.nanos / 1_000_000.0d);
+        return millis;
     }
 
 

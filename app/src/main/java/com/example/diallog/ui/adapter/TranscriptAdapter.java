@@ -6,6 +6,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
@@ -13,6 +14,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.diallog.R;
 import com.example.diallog.data.model.TranscriptSegment;
 import com.example.diallog.utils.TimeFormatter;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 목적:
@@ -73,6 +77,24 @@ public final class TranscriptAdapter extends ListAdapter<TranscriptSegment, Tran
             time.setText(TimeFormatter.toMmSs(item.startMs));
             text.setText(item.text);
         }
+    }
+
+    @Override
+    public void submitList(@Nullable List<TranscriptSegment> list) {
+        super.submitList(copy(list));
+    }
+
+    @Override
+    public void submitList(@Nullable List<TranscriptSegment> list, @Nullable Runnable commitCallback) {
+        super.submitList(copy(list), commitCallback);
+    }
+
+    @Nullable
+    private List<TranscriptSegment> copy(@Nullable List<TranscriptSegment> list) {
+        if (list == null) {
+            return null;
+        }
+        return new ArrayList<>(list);
     }
 
     @NonNull @Override

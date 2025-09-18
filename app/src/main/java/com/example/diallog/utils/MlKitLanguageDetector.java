@@ -33,7 +33,7 @@ public final class MlKitLanguageDetector implements LanguageDetector {
     @Override
     public @NonNull Optional<String> detect(@Nullable String text) {
 
-        return Optional.of("ko");
+        return Optional.of("en");
 
 //        String normalized = text == null ? "" : text.trim();
 //        int length = normalized.length();

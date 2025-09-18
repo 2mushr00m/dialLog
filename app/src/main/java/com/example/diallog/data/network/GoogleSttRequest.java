@@ -10,9 +10,13 @@ public final class GoogleSttRequest {
         public String languageCode;
         public String[] alternativeLanguageCodes;
         public boolean enableAutomaticPunctuation;
+        public boolean enableWordTimeOffsets;
+        public int maxAlternatives;
+        public String model;
     }
 
     public static final class Audio {
         public String content;
+        public String uri;
     }
 }
