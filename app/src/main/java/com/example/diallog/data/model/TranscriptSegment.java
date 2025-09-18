@@ -10,4 +10,8 @@ public final class TranscriptSegment {
         this.startMs = startMs;
         this.endMs = endMs;
     }
+
+    public TranscriptSegment(long startMs, long endMs, String text) {
+        this(text, startMs, endMs);
+    }
 }

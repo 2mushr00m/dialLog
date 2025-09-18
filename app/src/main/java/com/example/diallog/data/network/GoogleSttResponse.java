@@ -7,6 +7,7 @@ public final class GoogleSttResponse {
 
     public static final class Result {
         public List<Alternative> alternatives;
+        public String resultEndTime;
     }
 
     public static final class Alternative {
@@ -15,12 +16,7 @@ public final class GoogleSttResponse {
     }
     public static final class WordInfo {
         public String word;
-        public TimeOffset startTime;
-        public TimeOffset endTime;
-    }
-
-    public static final class TimeOffset {
-        public String seconds;
-        public int nanos;
+        public String startTime;
+        public String endTime;
     }
 }
