@@ -39,7 +39,7 @@ public final class AudioSnipper {
     private final int fallbackRawId;
     private final String fallbackName;
 
-    public AudioSnipper(@NonNull Context context, int fallbackRawId, @NonNull String fallbackName) {
+    public AudioSnipper(Context context, int fallbackRawId, @NonNull String fallbackName) {
         this.app = context.getApplicationContext();
         this.resources = context.getResources();
         this.fallbackRawId = fallbackRawId;

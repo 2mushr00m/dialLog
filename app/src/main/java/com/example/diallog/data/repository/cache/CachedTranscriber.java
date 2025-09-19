@@ -15,6 +15,11 @@ public final class CachedTranscriber implements Transcriber {
     private final Transcriber delegate;
     private final TranscriptCache cache;
 
+    public CachedTranscriber(@NonNull Transcriber delegate) {
+        this.delegate = delegate;
+        this.cache = null;
+    }
+
     public CachedTranscriber(@NonNull Transcriber delegate, @NonNull TranscriptCache cache) {
         this.delegate = delegate;
         this.cache = cache;

@@ -8,6 +8,8 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.example.diallog.R;
+import com.example.diallog.config.AppConfig;
 import com.example.diallog.data.model.TranscriptSegment;
 import com.example.diallog.data.model.TranscriptionResult;
 import com.example.diallog.utils.AudioSnipper;
@@ -21,24 +23,21 @@ import java.util.Optional;
 import android.util.Log;
 
 public final class RouterTranscriber implements Transcriber {
-    private static final String TAG = "RouterTranscriber";
+    private static final String TAG = "STT Router";
 
     private static final String QUICK_LANGUAGE = "en-US";
-    private static final int SNIP_SECONDS = 20;
+    private static final int SNIP_SECONDS = 30;
 
 
     private final Transcriber clova;
     private final GoogleTranscriber google;
     private final LanguageDetector detector;
-    private final AudioSnipper snipper;
     public RouterTranscriber(@NonNull Transcriber clova,
                              @NonNull GoogleTranscriber google,
-                             @NonNull LanguageDetector detector,
-                             @NonNull AudioSnipper snipper) {
+                             @NonNull LanguageDetector detector) {
         this.clova = clova;
         this.google = google;
         this.detector = detector;
-        this.snipper = snipper;
     }
 
     @Override
@@ -49,8 +48,9 @@ public final class RouterTranscriber implements Transcriber {
 
     public @NonNull TranscriptionResult transcribeWithRouting(@NonNull Uri audioUri) {
         long routeStart = SystemClock.elapsedRealtime();
-        Log.i(TAG, "route.start uri=" + audioUri);
+        Log.i(TAG, "[STT 라우팅] URI=" + audioUri);
 
+        AudioSnipper snipper = new AudioSnipper(null, R.raw.sample1, "sample1_snip.mp3");
         AudioSnipper.SnippedAudio snippedAudio = snipper.snipHead(audioUri, SNIP_SECONDS);
         long quickStart = SystemClock.elapsedRealtime();
         TranscriptionResult quickResult = null;
@@ -58,10 +58,10 @@ public final class RouterTranscriber implements Transcriber {
             try {
                 quickResult = google.transcribeQuick(snippedAudio.data, snippedAudio.sampleRateHz, QUICK_LANGUAGE);
             } catch (RuntimeException quickError) {
-                Log.e(TAG, "quick.google.failed", quickError);
+                Log.e(TAG, "[STT 스니퍼 실패]", quickError);
             }
         } else {
-            Log.i(TAG, "quick.skip reason=no_snip");
+            Log.i(TAG, "[STT 라우팅 스킵] 이유: 스니퍼=없음");
         }
         long quickElapsed = SystemClock.elapsedRealtime() - quickStart;
 

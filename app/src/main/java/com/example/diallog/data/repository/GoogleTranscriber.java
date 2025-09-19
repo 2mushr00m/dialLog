@@ -34,10 +34,7 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 
 public final class GoogleTranscriber implements Transcriber {
-    public enum Mode {
-        QUICK,
-        FULL
-    }
+    public enum Mode { QUICK, FULL }
 
     public static final class AudioInput {
         @Nullable final Uri uri;
@@ -86,13 +83,12 @@ public final class GoogleTranscriber implements Transcriber {
     private final Context app;
     private final GoogleSttApi api;
     private final AuthTokenProvider tokenProvider;
-    private final String language;
+    private String language = "en-US";
 
-    public GoogleTranscriber(Context app, Retrofit retrofit, AuthTokenProvider tokenProvider, String language) {
+    public GoogleTranscriber(Context app, Retrofit retrofit, AuthTokenProvider tokenProvider) {
         this.app = app.getApplicationContext();
         this.api = retrofit.create(GoogleSttApi.class);
         this.tokenProvider = tokenProvider;
-        this.language = language;
     }
 
     @Override
@@ -389,7 +385,7 @@ public final class GoogleTranscriber implements Transcriber {
                     endMs = startMs;
                 }
 
-                segments.add(new TranscriptSegment(startMs, endMs, transcript));
+                segments.add(new TranscriptSegment(transcript, startMs, endMs, 1.0));
                 if (endMs > lastEndMs) {
                     lastEndMs = endMs;
                 }

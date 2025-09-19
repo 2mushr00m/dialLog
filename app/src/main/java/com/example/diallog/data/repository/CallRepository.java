@@ -14,9 +14,11 @@ import java.util.concurrent.Future;
 public interface CallRepository {
     List<CallRecord> getRecent(int offset, int limit);
     @Nullable CallRecord getByUri(Uri uri);
+
     default void setUserDirUri(@Nullable Uri uri) {}
     @NonNull
     default Future<?> refreshAsync() { return CompletableFuture.completedFuture(null); }
+
     default void ensureScanned() {}
     default void reload() {}
 

@@ -33,9 +33,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.diallog.R;
+import com.example.diallog.config.AppConfig;
 import com.example.diallog.data.repository.CallRepository;
 import com.example.diallog.data.repository.FileSystemCallRepository;
 import com.example.diallog.data.repository.MockCallRepository;
+import com.example.diallog.data.repository.RepositoryProvider;
 import com.example.diallog.ui.adapter.CallAdapter;
 import com.example.diallog.ui.viewmodel.MainVMFactory;
 import com.example.diallog.ui.viewmodel.MainViewModel;
@@ -69,12 +71,6 @@ public final class MainActivity extends AppCompatActivity {
     private static final String KEY_DIR_URI = "dir_tree_uri";
 
 
-    private static final Set<String> HINTS = new HashSet<>(Arrays.asList(
-            "Call", "Recorder", "record", "통화", "녹음", "CallRec", "CallRecord", "DialLog"
-    ));
-    private static final Set<String> AUDIO_EXT = new HashSet<>(Arrays.asList(
-            "m4a", "mp3", "aac", "wav", "3gp", "amr", "ogg", "flac"
-    ));
 
     private final Set<File> watchDirs = new HashSet<>(Arrays.asList(
             new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "DialLog"),
@@ -89,16 +85,15 @@ public final class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        AppConfig.get().setIntentOverride(getIntent());
+
         setContentView(R.layout.activity_main);
 
         bindViews();
         setupRecycler();
         setupFolderPicker();
 
-
-        CallRepository repo = new FileSystemCallRepository(
-                getApplicationContext(), getSavedDirUri(),
-                HINTS, AUDIO_EXT);
+        CallRepository repo = RepositoryProvider.buildCallRepository(getApplicationContext());
         viewModel = new ViewModelProvider(this, new MainVMFactory(repo)).get(MainViewModel.class);
 
         if (!PermissionHelper.hasReadAudioPermission(this)) {
@@ -226,7 +221,7 @@ public final class MainActivity extends AppCompatActivity {
 
                 // repo 교체 후 새로고침
                 if (viewModel != null) {
-                    viewModel.setUserDirUri(treeUri);
+//                    viewModel.setUserDirUri(treeUri);
                     viewModel.refresh();
                 }
                 Toast.makeText(this, "폴더가 지정되었습니다.", Toast.LENGTH_SHORT).show();
@@ -245,7 +240,7 @@ public final class MainActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(reqCode, perms, grants);
         if (PermissionHelper.hasReadAudioPermission(this)) {
             if (viewModel == null) {
-                CallRepository repo = new FileSystemCallRepository(getApplicationContext(), getSavedDirUri(), HINTS, AUDIO_EXT);
+                CallRepository repo = new FileSystemCallRepository(getApplicationContext());
                 viewModel = new ViewModelProvider(this, new MainVMFactory(repo)).get(MainViewModel.class);
             }
             observeViewmodel();

@@ -27,19 +27,19 @@ import retrofit2.Retrofit;
 
 public final class ClovaSpeechTranscriber implements Transcriber {
     private static final String TAG = "ClovaTranscriber";
+    private static final String LANGUAGE_CODE = "ko-KR";
+
     private final Context app;
     private final Retrofit retrofit;
-    private final String language;
 
-    public ClovaSpeechTranscriber(@NonNull Context app, Retrofit retrofit, @NonNull String language) {
+    public ClovaSpeechTranscriber(@NonNull Context app, Retrofit retrofit) {
         this.app = app.getApplicationContext();
         this.retrofit = retrofit;
-        this.language = language;
     }
 
     @Override
     public @NonNull TranscriptionResult transcribe(@NonNull Uri audioUri) {
-        return transcribe(audioUri, language);
+        return transcribe(audioUri, LANGUAGE_CODE);
     }
 
     @Override
@@ -65,7 +65,7 @@ public final class ClovaSpeechTranscriber implements Transcriber {
             RequestBody mediaRb = RequestBody.create(resolved.file, parse(MediaResolver.guessMimeType(resolved.file.getName())));
             MultipartBody.Part media = MultipartBody.Part.createFormData("media", resolved.file.getName(), mediaRb);
 
-            String effectiveLanguage = TextUtils.isEmpty(languageCode) ? language : languageCode;
+            String effectiveLanguage = TextUtils.isEmpty(languageCode) ? LANGUAGE_CODE : languageCode;
             String paramsJson =
                     "{" +
                             "\"language\":\"" + effectiveLanguage + "\"," +
@@ -96,11 +96,11 @@ public final class ClovaSpeechTranscriber implements Transcriber {
             if (b.segments != null && !b.segments.isEmpty()) {
                 Log.i(TAG, "transcribe: mapping " + b.segments.size() + " segments");
                 for (ClovaSpeechResponse.Seg s : b.segments) {
-                    out.add(new TranscriptSegment(s.text, s.startMs, s.endMs));
+                    out.add(new TranscriptSegment(s.text, s.startMs, s.endMs, 1.0));
                 }
             } else if (b.text != null && !b.text.isEmpty()) {
                 Log.i(TAG, "transcribe: single text fallback length=" + b.text.length());
-                out.add(new TranscriptSegment(b.text, 0, 0));
+                out.add(new TranscriptSegment(b.text, 0, 0, 1.0));
             }
 
             return out;

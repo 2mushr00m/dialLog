@@ -1,8 +1,10 @@
 package com.example.diallog.ui.main;
 import com.example.diallog.BuildConfig;
 
+import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -28,42 +30,23 @@ public final class SummaryActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private TranscriptAdapter adapter;
     private SummaryViewModel viewModel;
+    private TextView statusView;
 
     @Override protected void onCreate(@Nullable Bundle b){
         super.onCreate(b);
         setContentView(R.layout.activity_summary);
 
         recyclerView = findViewById(R.id.rv_transcript);
+        statusView = findViewById(R.id.tv_loading);
 
         adapter = new TranscriptAdapter();
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
         recyclerView.setItemAnimator(null);
 
-        Transcriber clova = new ClovaSpeechTranscriber(
-                this,
-                ApiClient.clova(),
-                "ko-KR"
-        );
-        GoogleOauth oauth;
-        try {
-            oauth = new GoogleOauth(this, R.raw.service_account);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        retrofit2.Retrofit googleRetrofit = ApiClient.google();
-        GoogleTranscriber google = new GoogleTranscriber(
-                this,
-                googleRetrofit,
-                oauth,
-                "en-US"
-        );
-
-        LanguageDetector det = new MlKitLanguageDetector();
-        AudioSnipper snipper = new AudioSnipper(this, R.raw.sample1, "sample1_snip.mp3");
-        Transcriber routed = new RouterTranscriber(clova, google, det, snipper);
+        Transcriber transcriber = TranscriberProvider.buildTranscriber();
         TranscriptCache tc = new FileTranscriptCache(this, 200);
-        Transcriber finalTranscriber = new CachedTranscriber(routed, tc);
+        Transcriber finalTranscriber = new CachedTranscriber(transcriber, tc);
 
         viewModel = new ViewModelProvider(
                 this, new SummaryVMFactory(finalTranscriber)

@@ -44,42 +44,31 @@ import java.util.concurrent.Future;
  *  - Android 12L 이하: android.permission.READ_EXTERNAL_STORAGE
  */
 public final class FileSystemCallRepository implements CallRepository {
-    private static final String TAG = "Repo";
+    private static final String TAG = "FS Repo";
+
     private static final int MAX_DEPTH_SAF = 4;        // SAF 순회 최대 깊이
     private static final int MAX_FILES_SAF = 200;      // SAF에서 수집할 최대 파일 수
     private static final long TIME_BUDGET_MS = 600L;   // 한 스캔 호출 당 시간 예산
     private static final int MEDIASTORE_LIMIT = 300;
+    private static final Set<String> HINTS = new HashSet<>(Arrays.asList(
+            "Call", "Recorder", "record", "통화", "녹음", "CallRec", "CallRecord", "DialLog"
+    ));
+    private static final Set<String> EXTS = new HashSet<>(Arrays.asList(
+            "m4a", "mp3", "aac", "wav", "3gp", "amr", "ogg", "flac"
+    ));
+
+    @Nullable private volatile Uri dirUri;
 
     private final Context appContext;
-    @Nullable private volatile Uri userDirUri;
-    private final Set<String> audioExt;
-    private final Set<String> hints;
     private final List<CallRecord> cache = new ArrayList<>();
     private final ExecutorService scanExecutor = Executors.newSingleThreadExecutor();
     private volatile boolean scanned = false;
     private volatile boolean scanning = false;
     @Nullable private volatile Future<?> ongoingScan;
 
-    public FileSystemCallRepository(@NonNull Context context,
-                                    @Nullable Uri dirUri,
-                                    @NonNull Set<String> hints,
-                                    @NonNull Set<String> audioExt) {
+    public FileSystemCallRepository(@NonNull Context context) {
         this.appContext = context.getApplicationContext();
-        this.userDirUri = dirUri;
-        this.hints = new HashSet<>();
-        for (String h : hints) {
-            if (h != null) {
-                this.hints.add(h.toLowerCase());
-            }
-        }
-        this.audioExt = new HashSet<>();
-        for (String ext : audioExt) {
-            if (ext != null) {
-                this.audioExt.add(ext.replace(".", "").toLowerCase());
-            }
-        }
     }
-
 
     /** 스캔 (백그라운드에서 호출) */
     @Override
@@ -138,11 +127,11 @@ public final class FileSystemCallRepository implements CallRepository {
 
     @Override
     public synchronized void setUserDirUri(@Nullable Uri uri) {
-        if (userDirUri == null ? uri == null : userDirUri.equals(uri)) {
+        if (dirUri == null ? uri == null : dirUri.equals(uri)) {
             Log.i(TAG, "setUserDirUri: unchanged");
             return;
         }
-        userDirUri = uri;
+        dirUri = uri;
         scanned = false;
         refreshAsync();
     }
@@ -150,7 +139,7 @@ public final class FileSystemCallRepository implements CallRepository {
     private void internalScan() {
         final long startTicks = SystemClock.uptimeMillis();
         final List<CallRecord> collected = new ArrayList<>();
-        final Uri localUri = userDirUri;
+        final Uri localUri = dirUri;
 
         int safCount = 0;
         if (localUri != null) {
@@ -313,9 +302,9 @@ public final class FileSystemCallRepository implements CallRepository {
         sel.add(MediaStore.Audio.Media.SIZE + " > 0");
         sel.add(MediaStore.Audio.Media.DURATION + " >= ?");
         args.add("300");
-        if (!audioExt.isEmpty()) {
+        if (!EXTS.isEmpty()) {
             List<String> like = new ArrayList<>();
-            for (String ext : audioExt) {
+            for (String ext : EXTS) {
                 like.add("LOWER(" + MediaStore.Audio.Media.DISPLAY_NAME + ") LIKE ?");
                 args.add("%." + ext);
             }
@@ -331,9 +320,9 @@ public final class FileSystemCallRepository implements CallRepository {
             args.add("%/diallog/%");
         }
 
-        if (useHints && !hints.isEmpty()) {
+        if (useHints && !HINTS.isEmpty()) {
             List<String> like = new ArrayList<>();
-            for (String h : hints) {
+            for (String h : HINTS) {
                 like.add("LOWER(" + MediaStore.Audio.Media.DISPLAY_NAME + ") LIKE ?");
                 args.add("%" + h + "%");
                 like.add("LOWER(" + pathColumn + ") LIKE ?");
@@ -410,7 +399,7 @@ public final class FileSystemCallRepository implements CallRepository {
         int dot = fileName.lastIndexOf('.');
         if (dot < 0) return false;
         String ext = fileName.substring(dot + 1).toLowerCase();
-        return audioExt.contains(ext);
+        return EXTS.contains(ext);
     }
 
     @Override public synchronized List<CallRecord> getRecent(int offset, int limit) {
