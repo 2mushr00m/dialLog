@@ -48,7 +48,6 @@ public final class RouterTranscriber implements Transcriber {
 
     public @NonNull TranscriptionResult transcribeWithRouting(@NonNull Uri audioUri) {
         long routeStart = SystemClock.elapsedRealtime();
-        Log.i(TAG, "[STT 라우팅] URI=" + audioUri);
 
         AudioSnipper snipper = new AudioSnipper(null, R.raw.sample1, "sample1_snip.mp3");
         AudioSnipper.SnippedAudio snippedAudio = snipper.snipHead(audioUri, SNIP_SECONDS);
@@ -89,7 +88,7 @@ public final class RouterTranscriber implements Transcriber {
         if (clovaLanguage != null) {
             Log.i(TAG, "route.decision provider=clova lang=" + clovaLanguage);
             try {
-                TranscriptionResult clovaResult = clova.transcribe(audioUri, clovaLanguage);
+                TranscriptionResult clovaResult = clova.transcribe(audioUri);
                 finalSegments = copySegments(clovaResult.segments);
                 provider = "clova";
                 route = routePrefix + "->clova";

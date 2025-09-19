@@ -48,9 +48,9 @@ public final class AudioSnipper {
 
     @NonNull
     public SnippedAudio snipHead(@NonNull Uri audioUri, int maxSeconds) {
-        MediaResolver.ResolvedAudio resolved = null;
+        AudioUriResolver.ResolvedAudio resolved = null;
         try {
-            MediaResolver resolver = new MediaResolver(app);
+            AudioUriResolver resolver = new AudioUriResolver(app);
             resolved = resolver.resolveWithFallback(audioUri, resources, fallbackRawId, fallbackName);
             SnippedAudio audio = decodeHead(resolved.file, maxSeconds);
             Log.i(TAG, "snip.done bytes=" + audio.data.length + " sampleRate=" + audio.sampleRateHz);

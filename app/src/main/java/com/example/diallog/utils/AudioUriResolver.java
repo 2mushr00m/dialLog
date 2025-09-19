@@ -10,14 +10,21 @@ import androidx.annotation.*;
 import java.io.*;
 import java.util.Objects;
 
-public final class MediaResolver {
+public final class AudioUriResolver {
     public static final class ResolvedAudio {
-        public final File file; public final String mime; public final boolean tempCopy;
-        ResolvedAudio(File f, String m, boolean t) { this.file=f; this.mime=m; this.tempCopy=t; }
+        public final File file;
+        public final String mime;
+        public final boolean tempCopy;
+
+        ResolvedAudio(File f, String m, boolean t) {
+            this.file=f;
+            this.mime=m;
+            this.tempCopy=t;
+        }
     }
 
     private final Context app;
-    public MediaResolver(@NonNull Context context) { this.app = context.getApplicationContext(); }
+    public AudioUriResolver(@NonNull Context ctx) { this.app = ctx.getApplicationContext(); }
 
     public @NonNull ResolvedAudio resolve(@NonNull Uri uri) throws Exception {
         return resolveInternal(uri, null, null);

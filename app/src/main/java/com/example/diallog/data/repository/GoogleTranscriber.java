@@ -16,7 +16,7 @@ import com.example.diallog.data.network.GoogleOperationResponse;
 import com.example.diallog.data.network.GoogleSttApi;
 import com.example.diallog.data.network.GoogleSttRequest;
 import com.example.diallog.data.network.GoogleSttResponse;
-import com.example.diallog.utils.MediaResolver;
+import com.example.diallog.utils.AudioUriResolver;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -83,12 +83,14 @@ public final class GoogleTranscriber implements Transcriber {
     private final Context app;
     private final GoogleSttApi api;
     private final AuthTokenProvider tokenProvider;
+    private final Transcriber fallback;
     private String language = "en-US";
 
-    public GoogleTranscriber(Context app, Retrofit retrofit, AuthTokenProvider tokenProvider) {
+    public GoogleTranscriber(Context app, Retrofit retrofit, AuthTokenProvider tokenProvider, Transcriber fallback) {
         this.app = app.getApplicationContext();
         this.api = retrofit.create(GoogleSttApi.class);
         this.tokenProvider = tokenProvider;
+        this.fallback = fallback;
     }
 
     @Override
@@ -162,9 +164,9 @@ public final class GoogleTranscriber implements Transcriber {
         if (!input.hasUri()) {
             throw new IllegalArgumentException("FULL mode requires a URI input");
         }
-        MediaResolver.ResolvedAudio resolved = null;
+        AudioUriResolver.ResolvedAudio resolved = null;
         try {
-            MediaResolver resolver = new MediaResolver(app);
+            AudioUriResolver resolver = new AudioUriResolver(app);
             resolved = resolver.resolveWithFallback(input.uri, app.getResources(), R.raw.sample1, "sample1.mp3");
 
             int sampleRateHz = GoogleSttAudioHelper.extractSampleRateHz(resolved.file);
