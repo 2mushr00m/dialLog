@@ -1,19 +1,11 @@
-package com.example.diallog.utils;
-
-import android.text.TextUtils;
-import android.util.Log;
+package com.example.diallog.data.repository;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.example.diallog.data.repository.LanguageDetector;
-import com.google.android.gms.tasks.Tasks;
-import com.google.mlkit.nl.languageid.IdentifiedLanguage;
 import com.google.mlkit.nl.languageid.LanguageIdentification;
 import com.google.mlkit.nl.languageid.LanguageIdentifier;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 public final class MlKitLanguageDetector implements LanguageDetector {

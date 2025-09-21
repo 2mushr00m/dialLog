@@ -117,6 +117,9 @@ public final class MainActivity extends AppCompatActivity {
         stopWatchingDirs();
     }
 
+
+
+
     private void bindViews() {
         recyclerView = findViewById(R.id.rv_calls);
         progressBar = findViewById(R.id.pb_loading);

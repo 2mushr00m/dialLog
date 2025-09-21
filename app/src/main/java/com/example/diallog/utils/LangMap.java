@@ -10,9 +10,6 @@ import java.util.Locale;
 public final class LangMap {
     private static final String DEFAULT_GOOGLE = "en-US";
 
-    private LangMap() {
-    }
-
     @NonNull
     public static String toGoogleCode(@Nullable String languageTag) {
         if (TextUtils.isEmpty(languageTag)) {

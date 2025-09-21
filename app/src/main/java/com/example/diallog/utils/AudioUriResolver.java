@@ -1,4 +1,3 @@
-// utils/MediaInputResolver.java
 package com.example.diallog.utils;
 
 import android.content.Context;
@@ -6,8 +5,12 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
-import androidx.annotation.*;
-import java.io.*;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Objects;
 
 public final class AudioUriResolver {
@@ -27,34 +30,42 @@ public final class AudioUriResolver {
     public AudioUriResolver(@NonNull Context ctx) { this.app = ctx.getApplicationContext(); }
 
     public @NonNull ResolvedAudio resolve(@NonNull Uri uri) throws Exception {
-        return resolveInternal(uri, null, null);
+        return resolveInternal(uri, null);
     }
     public @NonNull ResolvedAudio resolveWithFallback(@NonNull Uri uri, @NonNull Resources res, int rawId, @NonNull String name) throws Exception {
-        return resolveInternal(uri, new Fallback(res, rawId, name), null);
+        return resolveInternal(uri, new Fallback(res, rawId, name));
     }
 
-    private static final class Fallback { final Resources r; final int id; final String name; Fallback(Resources r,int id,String n){this.r=r;this.id=id;this.name=n;} }
+    private static final class Fallback {
+        final Resources r;
+        final int id;
+        final String name;
+        Fallback(Resources r,int id,String n) {
+            this.r = r; this.id = id; this.name = n; }
+    }
 
-    private @NonNull ResolvedAudio resolveInternal(@NonNull Uri uri, @Nullable Fallback fb, @Nullable String forceName) throws Exception {
+    private @NonNull ResolvedAudio resolveInternal(@NonNull Uri uri, @Nullable Fallback fb) throws Exception {
         String scheme = uri.getScheme();
         if ("content".equalsIgnoreCase(scheme)) {
             String name = queryName(uri);
-            File f = copyContentToCache(uri, safeName(name));
+            File f = copyContentToCache(uri, (name!=null && !name.isEmpty()) ? name : "audio_" + System.currentTimeMillis() + ".bin");
             return new ResolvedAudio(f, guessMimeType(f.getName()), true);
         }
         if ("file".equalsIgnoreCase(scheme)) {
             File f = new File(Objects.requireNonNull(uri.getPath()));
-            if (f.exists() && f.length() > 0) return new ResolvedAudio(f, guessMimeType(f.getName()), false);
+            if (f.exists() && f.length() > 0)
+                return new ResolvedAudio(f, guessMimeType(f.getName()), false);
         }
         if (scheme == null || scheme.isEmpty()) {
             File f = new File(uri.toString());
-            if (f.exists() && f.length() > 0) return new ResolvedAudio(f, guessMimeType(f.getName()), false);
+            if (f.exists() && f.length() > 0)
+                return new ResolvedAudio(f, guessMimeType(f.getName()), false);
         }
         if (fb != null) {
             File f = copyRawToCache(fb.r, app.getCacheDir(), fb.id, fb.name);
             return new ResolvedAudio(f, guessMimeType(f.getName()), true);
         }
-        throw new IllegalStateException("Unable to resolve: " + uri);
+        throw new IllegalStateException("오디오 Uri 해석 실패: " + uri);
     }
 
     private @Nullable String queryName(@NonNull Uri uri) {
@@ -67,9 +78,6 @@ public final class AudioUriResolver {
         } catch (Exception ignore) {}
         return null;
     }
-    private @NonNull String safeName(@Nullable String n) {
-        return (n!=null && !n.isEmpty()) ? n : "audio_"+System.currentTimeMillis()+".bin";
-    }
     private static @NonNull File copyRawToCache(@NonNull Resources res, @NonNull File cache, int id, @NonNull String name) throws Exception {
         File dst = new File(cache, name);
         try (InputStream in = res.openRawResource(id); FileOutputStream out = new FileOutputStream(dst)) {
@@ -80,7 +88,7 @@ public final class AudioUriResolver {
     private @NonNull File copyContentToCache(@NonNull Uri uri, @NonNull String name) throws Exception {
         File out = new File(app.getCacheDir(), name);
         try (InputStream in = app.getContentResolver().openInputStream(uri); OutputStream os = new FileOutputStream(out)) {
-            if (in == null) throw new IllegalStateException("cannot open: " + uri);
+            if (in == null) throw new IllegalStateException("오디오 Uri 불러오기 실패: " + uri);
             byte[] buf = new byte[8192]; int n; while ((n = in.read(buf)) > 0) os.write(buf,0,n);
         }
         return out;
@@ -90,9 +98,11 @@ public final class AudioUriResolver {
         if (s.endsWith(".mp3")) return "audio/mpeg";
         if (s.endsWith(".wav")) return "audio/wav";
         if (s.endsWith(".m4a")) return "audio/mp4";
+        if (s.endsWith(".flac")) return "audio/flac";
         if (s.endsWith(".aac")) return "audio/aac";
         if (s.endsWith(".ogg")) return "audio/ogg";
         if (s.endsWith(".amr")) return "audio/amr";
+        if (s.endsWith(".wma")) return "audio/x-ms-wma";
         return "application/octet-stream";
     }
 }

@@ -9,7 +9,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.example.diallog.R;
-import com.example.diallog.config.AppConfig;
 import com.example.diallog.data.model.TranscriptSegment;
 import com.example.diallog.data.model.TranscriptionResult;
 import com.example.diallog.utils.AudioSnipper;
@@ -20,12 +19,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import android.util.Log;
-
 public final class RouterTranscriber implements Transcriber {
     private static final String TAG = "STT Router";
 
-    private static final String QUICK_LANGUAGE = "en-US";
+    private static final String DEFAULT_LANGUAGE_CODE = "en-US";
     private static final int SNIP_SECONDS = 30;
 
 
@@ -55,7 +52,7 @@ public final class RouterTranscriber implements Transcriber {
         TranscriptionResult quickResult = null;
         if (snippedAudio != null && !snippedAudio.isEmpty()) {
             try {
-                quickResult = google.transcribeQuick(snippedAudio.data, snippedAudio.sampleRateHz, QUICK_LANGUAGE);
+                quickResult = google.transcribeQuick(snippedAudio.data, snippedAudio.sampleRateHz, DEFAULT_LANGUAGE_CODE);
             } catch (RuntimeException quickError) {
                 Log.e(TAG, "[STT 스니퍼 실패]", quickError);
             }

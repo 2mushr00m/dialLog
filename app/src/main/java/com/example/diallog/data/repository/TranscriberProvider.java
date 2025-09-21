@@ -10,7 +10,6 @@ import com.example.diallog.auth.GoogleOauth;
 import com.example.diallog.config.AppConfig;
 import com.example.diallog.data.network.ApiClient;
 import com.example.diallog.data.repository.cache.CachedTranscriber;
-import com.example.diallog.utils.MlKitLanguageDetector;
 
 
 public final class TranscriberProvider {
@@ -24,12 +23,13 @@ public final class TranscriberProvider {
 
     public static synchronized void init(@NonNull Context ctx) {
         if (initialized) return;
+        Context app = ctx.getApplicationContext();
 
         mock = new MockTranscriber();
-        clova = new ClovaSpeechTranscriber(ctx, ApiClient.clova(), mock);
+        clova = new ClovaSpeechTranscriber(app, ApiClient.clova(), mock);
         try {
-            oauth = new GoogleOauth(ctx, R.raw.service_account);
-            google = new GoogleTranscriber(ctx, ApiClient.google(), oauth, clova);
+            oauth = new GoogleOauth(app, R.raw.service_account);
+            google = new GoogleTranscriber(app, ApiClient.google(), oauth, clova);
         } catch (Exception e) {
             Log.w(TAG, "Google 생성 실패: CLOVA_ONLY로 엔진 고정", e);
             google = null;
