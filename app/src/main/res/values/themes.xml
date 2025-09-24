@@ -2,4 +2,10 @@
 <resources>
 
     <style name="Theme.DialLog" parent="Theme.MaterialComponents.DayNight.NoActionBar"/>
+
+
+
+    <style name="Theme.DialLog.Splash" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/brand_primary_container</item>
+    </style>
 </resources>

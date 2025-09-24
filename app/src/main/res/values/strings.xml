@@ -1,3 +1,64 @@
 <resources>
-    <string name="app_name">dialLog</string>
+    <string name="app_name">DialLog</string>
+    <string name="app_creator">2mushr00m</string>
+    <string name="brand_tagline">현명한 AI 비서</string>
+
+    <string name="msg_loading">STT 전환 중입니다….</string>
+    <string name="msg_empty">통화 녹음이 없습니다.</string>
+    <string name="msg_error">오류가 발생했습니다.</string>
+    <string name="msg_no_file">음성 파일을\n찾지 못했습니다.</string>
+    <string name="msg_add_file">를 클릭하여 파일을 추가해주세요.</string>
+
+    <string name="label_today">오늘</string>
+    <string name="label_yesterday">어제</string>
+    <string name="label_seconds_ago">%d초 전</string>
+    <string name="label_minutes_ago">%d분 전</string>
+    <string name="label_hours_ago">%d시간 전</string>
+    <string name="label_days_ago">days_ago</string>
+    <string name="label_date_month_day">%d월 %d일</string>
+    <string name="label_created_time">%d:%d %s</string>
+    <string name="label_created_date_time">%d년 %월 %일 %d:%d %s</string>
+    <string name="label_hms_no_stt">%d시간 %d분 %d초 · STT 미전환</string>
+    <string name="label_ms_no_stt">%d분 %d초 · STT 미전환</string>
+    <string name="label_s_no_stt">%d초 · STT 미전환</string>
+    <string name="label_timestamp_time">%d:%d</string>
+    <string name="label_view_summary">요약 보기</string>
+
+    <string name="btn_settings">설정</string>
+    <string name="btn_bookmarks">북마크 목록</string>
+    <string name="btn_add_bookmark">북마크 추가</string>
+    <string name="btn_remove_bookmark">북마크 제거</string>
+    <string name="btn_edit_name">파일명 편집</string>
+    <string name="btn_delete_cache">캐시 파일 삭제</string>
+    <string name="btn_stt_and_make_summary">STT · 요약 생성</string>
+
+    <string name="chip_search">검색</string>
+    <string name="chip_add_event">일정 추가</string>
+
+    <string name="search_title">검색</string>
+    <string name="search_range">이름 / 전화번호 / 파일명</string>
+    <string name="search_date">날짜</string>
+    <string-array name="search_date_labels">
+        <item>모든 범위</item>
+        <item>최근 1주</item>
+        <item>최근 1개월</item>
+        <item>최근 3개월</item>
+        <item>직접 입력</item>
+    </string-array>
+    <integer-array name="search_date_values">
+        <item>0</item>   <!-- 모든 범위 -->
+        <item>7</item>   <!-- 7일 -->
+        <item>30</item>  <!-- 30일 -->
+        <item>90</item>  <!-- 90일 -->
+        <item>-1</item>  <!-- 직접 입력 -->
+    </integer-array>
+    <string name="search_date_start">시작일</string>
+    <string name="search_date_end">종료일</string>
+
+    <string name="setting_title">Settings</string>
+    <string name="setting_stt_auto">STT 자동변환 설정</string>
+    <string name="setting_use_network">데이터 네트워크 사용</string>
+    <string name="setting_cache_management">저장소 관리</string>
+    <string name="setting_cache_clear">캐시 데이터 삭제</string>
+    <string name="setting_cache_clear_btn">삭제</string>
 </resources>
