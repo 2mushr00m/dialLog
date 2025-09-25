@@ -24,6 +24,8 @@
     <string name="label_timestamp_time">%d:%d</string>
     <string name="label_view_summary">요약 보기</string>
 
+    <string name="btn_add_file">파일 추가</string>
+    <string name="btn_search">검색</string>
     <string name="btn_settings">설정</string>
     <string name="btn_bookmarks">북마크 목록</string>
     <string name="btn_add_bookmark">북마크 추가</string>

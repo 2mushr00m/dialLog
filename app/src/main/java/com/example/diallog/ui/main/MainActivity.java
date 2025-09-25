@@ -84,6 +84,7 @@ public final class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle b) {
+        setTheme(R.style.Theme_DialLog);
         super.onCreate(b);
         AppConfig.get().setIntentOverride(getIntent());
 

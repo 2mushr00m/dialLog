@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
-    <style name="Theme.DialLog" parent="Theme.MaterialComponents.DayNight.NoActionBar"/>
+    <style name="Theme.DialLog" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/surface</item>
+    </style>
 
 
 
     <style name="Theme.DialLog.Splash" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="android:windowBackground">@color/brand_primary_container</item>
+        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="31">@drawable/icon</item>
     </style>
 </resources>

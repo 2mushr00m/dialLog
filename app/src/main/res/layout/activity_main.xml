@@ -1,17 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:fitsSystemWindows="true">
 
-    <!--  목록  -->
-    <androidx.recyclerview.widget.RecyclerView
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        android:id="@+id/rv_calls"
+    <!-- Top Bar -->
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="wrap_content"
+        android:background="@color/surface"
+        app:elevation="0dp">
 
-    <!--  로딩  -->
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="@string/app_name"
+            app:titleTextColor="@color/on_surface_variant"
+            app:titleTextAppearance="@style/TextAppearance.DialLog.ToolbarTitle"
+            app:titleCentered="false"
+            app:navigationIcon="@null"
+            app:navigationIconTint="@color/teal_200"
+            app:contentInsetStartWithNavigation="0dp"
+            app:menu="@menu/menu_main"
+            tools:menu="@menu/menu_main"/>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <FrameLayout
+        android:id="@+id/content_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <include layout="@layout/status_view"/>
+        <include layout="@layout/status_empty" android:visibility="gone"/>
+        <include layout="@layout/status_error" android:visibility="gone"/>
+    </FrameLayout>
+
+<!--    &lt;!&ndash;  목록  &ndash;&gt;-->
+<!--    &lt;!&ndash;  로딩  &ndash;&gt;-->
     <ProgressBar
         android:id="@+id/pb_loading"
         style="?android:attr/progressBarStyleLarge"
@@ -30,14 +59,14 @@
         android:layout_height="wrap_content">
 
         <TextView
-            android:text="표시할 통화 녹음이 없습니다."
+            android:text="@string/msg_empty"
             android:textSize="16sp"
             android:paddingBottom="8dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
         <TextView
-            android:text="설정에서 폴더를 지정하거나 오디오를 직접 추가하세요."
+            android:text="@string/msg_add_file"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
@@ -57,4 +86,4 @@
 
     </LinearLayout>
 
-</LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
