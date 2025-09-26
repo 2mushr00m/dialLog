@@ -1,15 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
-    <TextView
-        android:id="@+id/tv_text"
+    android:layout_height="wrap_content"
+    android:paddingBottom="4dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cv_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/surface_variant"
+            app:cardCornerRadius="12dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:id="@+id/tv_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:textColor="@color/on_surface"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="8dp"
+                tools:text="프로토 타입 통화 대화."/>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:id="@+id/tv_time"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="15dp"
+            android:textSize="13sp"
+            android:textColor="@color/subtext_light"
+            app:layout_constraintStart_toEndOf="@id/cv_text"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            tools:text="0:21"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <com.google.android.material.chip.Chip
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
-    <TextView
-        android:id="@+id/tv_time"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:textColor="@color/chip_text"
+        android:textSize="13sp"
+        app:chipBackgroundColor="@color/chip_background"
+        app:chipStrokeColor="@color/chip_outline"
+        app:chipStrokeWidth="1dp"
+        tools:text="@string/chip_add_event"
+        android:visibility="gone"/>
 
 </LinearLayout>
