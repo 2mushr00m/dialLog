@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="16dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="16dp"
+    android:background="@color/surface"
+    android:elevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/label_elapsed"
+            android:labelFor="@id/slider"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:text="@string/label_timestamp_time"/>
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/slider"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:contentDescription="@string/cd_media_position"
+            app:trackColorActive="@color/brand_primary"
+            app:trackColorInactive="@color/subtext_light"
+            app:trackHeight="6dp"
+            app:thumbColor="@color/brand_primary"
+            app:thumbRadius="6dp"
+            app:valueFrom="0" app:valueTo="81"
+            app:value="20" app:stepSize="1"/>
+
+        <TextView
+            android:id="@+id/label_tv_duration"
+            android:labelFor="@id/slider"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:text="@string/label_timestamp_time"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingTop="8dp">
+
+        <ImageButton
+            android:id="@+id/btn_rew"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/btn_rewind_10s"
+            android:src="@drawable/ic_replay_10"/>
+
+        <ImageButton
+            android:id="@+id/btnPlay"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/btn_play_pause"
+            android:src="@drawable/ic_play"/>
+
+        <ImageButton
+            android:id="@+id/btnFwd"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/btn_forward_10s"
+            android:src="@drawable/ic_forward_10"/>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="8dp"/>
+</LinearLayout>

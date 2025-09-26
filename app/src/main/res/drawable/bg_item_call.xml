@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?attr/colorControlHighlight">
+
+    <!-- 콘텐츠 배경: 활성화(롱클릭) 시 색 채움 -->
+    <item>
+        <selector>
+            <item android:state_activated="true">
+                <shape android:shape="rectangle">
+                    <solid android:color="@color/teal_200"/>
+                    <corners android:radius="12dp"/>
+                </shape>
+            </item>
+            <item>
+                <shape android:shape="rectangle">
+                    <solid android:color="@android:color/transparent"/>
+                    <corners android:radius="12dp"/>
+                </shape>
+            </item>
+        </selector>
+    </item>
+
+    <!-- ripple 영역 마스크(모서리 밖 번짐 방지) -->
+    <item android:id="@android:id/mask">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/white"/>
+            <corners android:radius="12dp"/>
+        </shape>
+    </item>
+
+</ripple>

@@ -4,6 +4,33 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
 
+
+    <style name="ThemeOverlay.DialLog.BottomSheet" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="android:windowSoftInputMode">adjustResize</item>
+        <item name="bottomSheetStyle">@style/Widget.DialLog.BottomSheet</item>
+    </style>
+    <style name="Widget.DialLog.BottomSheet" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="shapeAppearance">@style/ShapeAppearanceOverlay.DialLog.BottomSheet</item>
+    </style>
+    <style name="ShapeAppearanceOverlay.DialLog.BottomSheet">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">24dp</item>
+        <item name="cornerSizeTopRight">24dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+    <style name="Widget.DialLog.BottomSheet.InputText">
+        <item name="boxStrokeWidth">0dp</item>
+        <item name="boxStrokeColor">@android:color/transparent</item>
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
+    </style>
+
+
+
     <style name="TextAppearance.DialLog.ToolbarTitle" parent="TextAppearance.Material3.TitleLarge">
         <item name="android:textStyle">bold</item>
         <item name="android:textSize">20sp</item>
@@ -12,6 +39,7 @@
     <style name="TextAppearance.DialLog.SectionHeader" parent="TextAppearance.Material3.LabelSmall">
         <item name="android:paddingLeft">20dp</item>
         <item name="android:paddingTop">20dp</item>
+        <item name="android:paddingBottom">8dp</item>
         <item name="android:textColor">@color/brand_primary</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textSize">12sp</item>

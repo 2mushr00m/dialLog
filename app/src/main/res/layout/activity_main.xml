@@ -22,7 +22,6 @@
             app:titleTextAppearance="@style/TextAppearance.DialLog.ToolbarTitle"
             app:titleCentered="false"
             app:navigationIcon="@null"
-            app:navigationIconTint="@color/teal_200"
             app:contentInsetStartWithNavigation="0dp"
             app:menu="@menu/menu_main"
             tools:menu="@menu/menu_main"/>
@@ -32,15 +31,21 @@
         android:id="@+id/content_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        app:layout_anchor="@+id/content_container"
+        app:layout_anchorGravity="center"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <include layout="@layout/status_view"/>
-        <include layout="@layout/status_empty" android:visibility="gone"/>
-        <include layout="@layout/status_error" android:visibility="gone"/>
+        <include layout="@layout/status_view" />
+
+        <include
+            layout="@layout/status_empty"
+            android:visibility="gone" />
+
+        <include
+            layout="@layout/status_error"
+            android:visibility="gone" />
     </FrameLayout>
 
-<!--    &lt;!&ndash;  목록  &ndash;&gt;-->
-<!--    &lt;!&ndash;  로딩  &ndash;&gt;-->
     <ProgressBar
         android:id="@+id/pb_loading"
         style="?android:attr/progressBarStyleLarge"

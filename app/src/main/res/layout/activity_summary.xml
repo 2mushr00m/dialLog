@@ -1,20 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:fitsSystemWindows="true">
 
-
-    <androidx.recyclerview.widget.RecyclerView
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        android:id="@+id/rv_transcript"
+    <!-- Top Bar -->
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="wrap_content"
+        android:background="@color/brand_primary_container"
+        app:elevation="0dp">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:titleTextColor="@color/brand_on_primary"
+            app:titleTextAppearance="@style/TextAppearance.DialLog.ToolbarTitle"
+            app:titleCentered="false"
+            app:navigationIcon="@null"
+            app:contentInsetStartWithNavigation="0dp"
+            app:menu="@menu/menu_summary"
+            tools:menu="@menu/menu_summary"
+            tools:title="010-1234-1234"/>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <FrameLayout
+        android:id="@+id/content_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_anchor="@+id/content_container"
+        app:layout_anchorGravity="center"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_transcript"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            tools:listitem="@layout/item_transcript"
+            tools:itemCount="4"/>
+
+    </FrameLayout>
+
+    <include
+        android:id="@+id/player_panel"
+        layout="@layout/view_player_panel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
 
     <TextView
         android:id="@+id/tv_loading"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:visibility="gone"/>
 
 
-</LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

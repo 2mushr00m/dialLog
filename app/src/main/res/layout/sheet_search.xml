@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="24dp"
+    app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.DialLog.BottomSheet">
+    
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fillViewport="true">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- 타이틀 -->
+            <TextView
+                android:id="@+id/tv_search"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="20dp"
+                android:paddingBottom="12dp"
+                android:text="@string/search_title"
+                android:textColor="@color/brand_primary"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                app:layout_constraintTop_toTopOf="parent"/>
+
+            <!-- 검색어 -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/il_search"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColorHint="@color/subtext"
+                android:paddingBottom="12dp"
+                app:endIconTint="@color/subtext"
+                app:endIconMode="custom"
+                app:endIconDrawable="@drawable/ic_search"
+                app:boxBackgroundColor="@color/lightGray_100"
+                app:layout_constraintTop_toBottomOf="@id/tv_search"
+                style="@style/Widget.DialLog.BottomSheet.InputText">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:hint="@string/search_name"
+                    android:imeOptions="actionSearch"
+                    android:inputType="text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingVertical="10dp"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <TextView
+                android:id="@+id/tv_date_label"
+                android:layout_width="70dp"
+                android:layout_height="wrap_content"
+                android:paddingVertical="25dp"
+                android:text="@string/search_date_label"
+                android:textSize="14sp"
+                android:textAlignment="center"
+                app:layout_constraintTop_toBottomOf="@id/il_search"
+                app:layout_constraintStart_toStartOf="parent"/>
+
+            <!-- 날짜 -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/il_search_dropdown"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="56dp"
+                app:hintEnabled="true"
+                app:endIconMode="dropdown_menu"
+                app:endIconMinSize="48dp"
+                app:boxBackgroundColor="@color/transparent"
+                style="@style/Widget.DialLog.BottomSheet.InputText"
+                app:layout_constraintStart_toEndOf="@id/tv_date_label"
+                app:layout_constraintTop_toBottomOf="@id/il_search"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                    android:id="@+id/et_range"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="56dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="0dp"
+                    android:inputType="none"
+                    android:textSize="16sp"
+                    android:textColor="@color/subtext"
+                    tools:text="@string/search_date" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- 시작일 ~ 종료일 -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/il_start"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:hint="@string/search_date_start"
+                android:textColorHint="@color/subtext"
+                app:layout_constraintTop_toBottomOf="@id/il_search_dropdown"
+                app:layout_constraintStart_toStartOf="@id/il_search_dropdown"
+                app:layout_constraintEnd_toStartOf="@id/il_end"
+                app:layout_constraintHorizontal_weight="1"
+                app:endIconTint="@color/subtext"
+                app:endIconMode="custom"
+                app:endIconDrawable="@drawable/ic_calendar"
+                app:boxBackgroundColor="@color/transparent"
+                style="@style/Widget.DialLog.BottomSheet.InputText">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_start"
+                    android:focusable="false"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:paddingVertical="10dp"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/il_end"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:hint="@string/search_date_end"
+                android:textColorHint="@color/subtext"
+                app:layout_constraintTop_toTopOf="@id/il_start"
+                app:layout_constraintStart_toEndOf="@id/il_start"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_weight="1"
+                app:endIconTint="@color/subtext"
+                app:endIconMode="custom"
+                app:endIconDrawable="@drawable/ic_calendar"
+                app:boxBackgroundColor="@color/transparent"
+                style="@style/Widget.DialLog.BottomSheet.InputText">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_end"
+                    android:focusable="false"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:paddingVertical="10dp"/>
+            </com.google.android.material.textfield.TextInputLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</com.google.android.material.card.MaterialCardView>

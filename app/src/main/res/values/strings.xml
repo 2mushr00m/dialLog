@@ -26,6 +26,7 @@
 
     <string name="btn_add_file">파일 추가</string>
     <string name="btn_search">검색</string>
+    <string name="btn_more">더보기</string>
     <string name="btn_settings">설정</string>
     <string name="btn_bookmarks">북마크 목록</string>
     <string name="btn_add_bookmark">북마크 추가</string>
@@ -33,13 +34,17 @@
     <string name="btn_edit_name">파일명 편집</string>
     <string name="btn_delete_cache">캐시 파일 삭제</string>
     <string name="btn_stt_and_make_summary">STT · 요약 생성</string>
+    <string name="btn_rewind_10s">10초 전으로</string>
+    <string name="btn_forward_10s">10초 뒤로</string>
+    <string name="btn_play_pause">재생/일시정지</string>
 
     <string name="chip_search">검색</string>
     <string name="chip_add_event">일정 추가</string>
 
     <string name="search_title">검색</string>
-    <string name="search_range">이름 / 전화번호 / 파일명</string>
-    <string name="search_date">날짜</string>
+    <string name="search_name">이름 / 전화번호 / 파일명</string>
+    <string name="search_date_label">날짜</string>
+    <string name="search_date">모든 범위</string>
     <string-array name="search_date_labels">
         <item>모든 범위</item>
         <item>최근 1주</item>
@@ -63,4 +68,7 @@
     <string name="setting_cache_management">저장소 관리</string>
     <string name="setting_cache_clear">캐시 데이터 삭제</string>
     <string name="setting_cache_clear_btn">삭제</string>
+
+
+    <string name="cd_media_position">뭐넣어?</string>
 </resources>

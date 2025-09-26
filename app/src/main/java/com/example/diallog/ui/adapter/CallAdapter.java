@@ -15,9 +15,6 @@ import com.example.diallog.R;
 import com.example.diallog.data.model.CallRecord;
 import com.example.diallog.utils.TimeFormatter;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public final class CallAdapter extends ListAdapter<CallRecord, CallAdapter.VH> {
     public interface OnItemClick { void onClick(@NonNull Uri uri); }
     @NonNull private final OnItemClick onItemClick;
@@ -78,7 +75,7 @@ public final class CallAdapter extends ListAdapter<CallRecord, CallAdapter.VH> {
     @NonNull @Override
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_call, parent, false);
+                .inflate(R.layout.item_file, parent, false);
         return new VH(v, this);
     }
 

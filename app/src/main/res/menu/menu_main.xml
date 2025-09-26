@@ -5,18 +5,18 @@
     <item
         android:title="@string/btn_search"
         android:id="@+id/action_search"
-        android:icon="@drawable/search"
+        android:icon="@drawable/ic_search"
         app:showAsAction="ifRoom" />
 
     <item
         android:title="@string/btn_add_file"
         android:id="@+id/action_import"
-        android:icon="@drawable/file_add"
+        android:icon="@drawable/ic_add_file"
         app:showAsAction="ifRoom" />
 
     <item
-        android:title="@string/btn_settings"
+        android:title="@string/btn_more"
         android:id="@+id/action_more"
-        android:icon="@drawable/more_horiz"
+        android:icon="@drawable/ic_more_horiz"
         app:showAsAction="ifRoom" />
 </menu>

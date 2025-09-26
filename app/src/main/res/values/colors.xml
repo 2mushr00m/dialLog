@@ -36,8 +36,8 @@
     <color name="surface">@color/white</color>
     <color name="surface_variant">@color/lightGray_100</color>
     <color name="surface_divider">@color/lightGray_200</color>
-    <color name="on_surface_dark">@color/darkGray_900</color>
-    <color name="on_surface">@color/darkGray_800</color>
+    <color name="on_surface_dark">@color/darkGray_700</color>
+    <color name="on_surface">@color/darkGray_400</color>
     <color name="on_surface_variant">@color/teal_700</color>
 
     <color name="click_outline">@color/teal_700</color>
