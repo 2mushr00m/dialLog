@@ -8,7 +8,7 @@
     <color name="teal_200">#ABE2DB</color>
     <color name="teal_400">#63CCC1</color>
     <color name="teal_700">#00897B</color>
-    <color name="lightGray_100">#F5F5F5</color> <!--  F9F9F9  -->
+    <color name="lightGray_100">#F9F9F9</color> <!--  F5F5F5  -->
     <color name="lightGray_200">#E8E8E8</color> <!--  EAEAEA  -->
     <color name="lightGray_400">#CCCCCC</color> <!--  D9D9D9 / CCCED3 / D1D5DB  -->
     <color name="lightGray_500">#BDBDBD</color>

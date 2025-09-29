@@ -35,8 +35,8 @@
             app:trackHeight="6dp"
             app:thumbColor="@color/brand_primary"
             app:thumbRadius="6dp"
-            app:valueFrom="0" app:valueTo="81"
-            app:value="20" app:stepSize="1"/>
+            android:valueFrom="0" android:valueTo="81"
+            android:value="20" android:stepSize="1"/>
 
         <TextView
             android:id="@+id/label_tv_duration"

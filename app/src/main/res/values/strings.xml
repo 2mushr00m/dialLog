@@ -42,7 +42,7 @@
     <string name="chip_add_event">일정 추가</string>
 
     <string name="search_title">검색</string>
-    <string name="search_name">이름 / 전화번호 / 파일명</string>
+    <string name="search_name_hint">이름 / 전화번호 / 파일명</string>
     <string name="search_date_label">날짜</string>
     <string name="search_date">모든 범위</string>
     <string-array name="search_date_labels">

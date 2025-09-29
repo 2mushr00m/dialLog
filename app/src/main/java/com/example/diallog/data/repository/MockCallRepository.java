@@ -34,7 +34,8 @@ public final class MockCallRepository implements CallRepository {
         return new ArrayList<>(fake.subList(offset, end));
     }
 
-    @Override public @Nullable CallRecord getByUri(@NonNull Uri uri) {
+    @Override
+    public @Nullable CallRecord getByUri(@NonNull Uri uri) {
         for (CallRecord r : fake) if (r.uri.equals(uri)) return r;
         return null;
     }

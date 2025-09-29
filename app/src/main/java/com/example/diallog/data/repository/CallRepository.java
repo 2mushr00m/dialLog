@@ -2,6 +2,7 @@ package com.example.diallog.data.repository;
 
 import android.net.Uri;
 
+import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -12,14 +13,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 public interface CallRepository {
-    List<CallRecord> getRecent(int offset, int limit);
     @Nullable CallRecord getByUri(Uri uri);
+    List<CallRecord> getRecent(int offset, int pageSize);
 
-    default void setUserDirUri(@Nullable Uri uri) {}
-    @NonNull
-    default Future<?> refreshAsync() { return CompletableFuture.completedFuture(null); }
+    default void setTreeUri(@Nullable Uri uri) {}
 
     default void ensureScanned() {}
     default void reload() {}
+    @NonNull
+    default Future<?> refreshAsync() { return CompletableFuture.completedFuture(null); }
+
 
 }

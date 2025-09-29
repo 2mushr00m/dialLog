@@ -55,7 +55,7 @@ public final class GoogleOauth implements AuthTokenProvider {
         }
         this.tokenUrl = resolvedTokenUrl;
         this.clock = clock != null ? clock : System::currentTimeMillis;
-        Log.i(TAG, "init: tokenUrl=" + this.tokenUrl);
+        Log.i(TAG, "loadFirstPage: tokenUrl=" + this.tokenUrl);
     }
 
     private static final class ServiceAccount {

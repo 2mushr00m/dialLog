@@ -6,8 +6,10 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:padding="24dp"
-    app:shapeAppearance="@style/Widget.DialLog.BottomSheet">
-    
+    app:cardCornerRadius="24dp">
+    <!--  app:shapeAppearance="@style/Widget.DialLog.BottomSheet"  -->
+
+
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -43,10 +45,15 @@
                 app:endIconDrawable="@drawable/ic_search"
                 app:boxBackgroundColor="@color/lightGray_100"
                 app:layout_constraintTop_toBottomOf="@id/tv_search"
-                style="@style/Widget.DialLog.BottomSheet.InputText">
+                app:boxStrokeWidth="0dp"
+                app:boxStrokeColor="@color/transparent"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:hint="@string/search_name"
+                    android:hint="@string/search_name_hint"
                     android:imeOptions="actionSearch"
                     android:inputType="text"
                     android:layout_width="match_parent"
@@ -75,7 +82,12 @@
                 app:endIconMode="dropdown_menu"
                 app:endIconMinSize="48dp"
                 app:boxBackgroundColor="@color/transparent"
-                style="@style/Widget.DialLog.BottomSheet.InputText"
+                app:boxStrokeWidth="0dp"
+                app:boxStrokeColor="@color/transparent"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp"
                 app:layout_constraintStart_toEndOf="@id/tv_date_label"
                 app:layout_constraintTop_toBottomOf="@id/il_search"
                 app:layout_constraintEnd_toEndOf="parent">
@@ -108,7 +120,12 @@
                 app:endIconMode="custom"
                 app:endIconDrawable="@drawable/ic_calendar"
                 app:boxBackgroundColor="@color/transparent"
-                style="@style/Widget.DialLog.BottomSheet.InputText">
+                app:boxStrokeWidth="0dp"
+                app:boxStrokeColor="@color/transparent"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_start"
                     android:focusable="false"
@@ -132,7 +149,12 @@
                 app:endIconMode="custom"
                 app:endIconDrawable="@drawable/ic_calendar"
                 app:boxBackgroundColor="@color/transparent"
-                style="@style/Widget.DialLog.BottomSheet.InputText">
+                app:boxStrokeWidth="0dp"
+                app:boxStrokeColor="@color/transparent"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_end"
                     android:focusable="false"

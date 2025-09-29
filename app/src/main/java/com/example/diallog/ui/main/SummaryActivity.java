@@ -1,8 +1,8 @@
 package com.example.diallog.ui.main;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -12,46 +12,66 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.diallog.R;
+import com.example.diallog.config.AppConfig;
 import com.example.diallog.data.repository.*;
 import com.example.diallog.data.repository.cache.CachedTranscriber;
 import com.example.diallog.data.repository.cache.FileTranscriptCache;
 import com.example.diallog.data.repository.cache.TranscriptCache;
+import com.example.diallog.ui.adapter.FileSectionAdapter;
 import com.example.diallog.ui.adapter.TranscriptAdapter;
+import com.example.diallog.ui.adapter.TranscriptSectionAdapter;
 import com.example.diallog.ui.viewmodel.SummaryVMFactory;
 import com.example.diallog.ui.viewmodel.SummaryViewModel;
 
 public final class SummaryActivity extends AppCompatActivity {
-    private RecyclerView recyclerView;
+    public static final String EXTRA_URI = "audioUri";
+
+    private SummaryViewModel vm;
+    private RecyclerView rv;
     private TranscriptAdapter adapter;
-    private SummaryViewModel viewModel;
-    private TextView statusView;
 
-    @Override protected void onCreate(@Nullable Bundle b){
+    @Override
+    protected void onCreate(@Nullable Bundle b) {
         super.onCreate(b);
+
+        AppConfig.get().setIntentOverride(getIntent());
+
         setContentView(R.layout.activity_summary);
+        setSupportActionBar(findViewById(R.id.toolbar));
 
-        recyclerView = findViewById(R.id.rv_transcript);
-        statusView = findViewById(R.id.tv_loading);
+        rv = findViewById(R.id.rv_transcript_section);
 
-        adapter = new TranscriptAdapter();
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        recyclerView.setAdapter(adapter);
-        recyclerView.setItemAnimator(null);
 
-        Transcriber transcriber = TranscriberProvider.buildTranscriber();
-        TranscriptCache tc = new FileTranscriptCache(this, 200);
-        Transcriber finalTranscriber = new CachedTranscriber(transcriber, tc);
+        rv.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new TranscriptAdapter(uri -> {
+        });
+        rv.setAdapter(adapter);
 
-        viewModel = new ViewModelProvider(
-                this, new SummaryVMFactory(finalTranscriber)
-        ).get(SummaryViewModel.class);
+        // Transcriber + 캐시 래핑
+        Transcriber base = TranscriberProvider.buildTranscriber();
+        TranscriptCache cache = new FileTranscriptCache(this, 200);
+        Transcriber transcriber = new CachedTranscriber(base, cache);
 
-        adapter.submitList(java.util.Collections.emptyList());
-        viewModel.segments().observe(this, adapter::submitList);
-        viewModel.error().observe(this, e -> { if (e != null) Toast.makeText(this, e, Toast.LENGTH_SHORT).show(); });
+        vm = new ViewModelProvider(this, new SummaryVMFactory(transcriber))
+                .get(SummaryViewModel.class);
 
-        Uri audioUri = getIntent().getParcelableExtra("audioUri");
-        if (audioUri != null) viewModel.transcribe(audioUri);
+        vm.segments().observe(this, adapter::submitList);
+        vm.loading().observe(this, loading -> {
+            if (loading == null) loading = false;
+        });
+        vm.error().observe(this, e -> {
+            if (e != null && !e.isEmpty()) {
+                Toast.makeText(this, e, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        // 입력 URI 수신
+        Uri audioUri = getIntent().getParcelableExtra(EXTRA_URI);
+        if (audioUri != null) {
+            vm.transcribe(audioUri);
+        } else {
+//            Toast.makeText(this, R.string.error_no_audio_uri, Toast.LENGTH_SHORT).show();
+        }
     }
 
 }

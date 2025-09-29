@@ -2,14 +2,21 @@ package com.example.diallog.data.repository;
 
 import android.content.Context;
 
+import androidx.annotation.NonNull;
+
 import com.example.diallog.config.AppConfig;
 
 public final class RepositoryProvider {
-    public static CallRepository buildCallRepository(Context ctx) {
+    private RepositoryProvider() {}
+
+    @NonNull
+    public static CallRepository buildCallRepository(@NonNull Context ctx, @NonNull Runnable onDataChanged) {
         switch (AppConfig.get().dataSourceMode()) {
-            case MOCK:  return new MockCallRepository(ctx);
+            case MOCK:
+                return new MockCallRepository(ctx.getApplicationContext());
             case READ:
-            default:    return new FileSystemCallRepository(ctx);
+            default:
+                return new FileSystemCallRepository(ctx.getApplicationContext(), onDataChanged);
         }
     }
 

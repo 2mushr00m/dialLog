@@ -19,7 +19,7 @@
         android:id="@+id/card"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:cardCornerRadius="16dp"
+        app:cardCornerRadius="20dp"
         app:cardUseCompatPadding="false"
         app:cardElevation="0dp"
         app:cardBackgroundColor="@color/surface_variant"
@@ -28,7 +28,7 @@
         app:layout_constraintEnd_toEndOf="parent">
 
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_items"
+            android:id="@+id/rv_files"
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:nestedScrollingEnabled="false"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"

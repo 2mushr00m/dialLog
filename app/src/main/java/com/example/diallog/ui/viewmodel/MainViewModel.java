@@ -1,143 +1,150 @@
 package com.example.diallog.ui.viewmodel;
 
+import android.app.Application;
 import android.net.Uri;
-import android.util.Log;
 
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.ViewModel;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.diallog.R;
 import com.example.diallog.data.model.CallRecord;
+import com.example.diallog.data.model.FileSection;
 import com.example.diallog.data.repository.CallRepository;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
-public final class MainViewModel extends ViewModel {
+public final class MainViewModel extends AndroidViewModel {
     private static final String TAG = "MainVM";
 
-    private static final int PAGE_SIZE = 20;
+    private final MutableLiveData<List<FileSection>> sections = new MutableLiveData<>(Collections.emptyList());
+    public LiveData<List<FileSection>> getSections() { return sections; }
+    private final ExecutorService io = Executors.newSingleThreadExecutor();
 
     private final CallRepository repo;
-    private final MutableLiveData<List<CallRecord>> items = new MutableLiveData<>(new ArrayList<>());
-    private final MutableLiveData<Boolean> loading = new MutableLiveData<>(false);
-    private final MutableLiveData<String> error = new MutableLiveData<>(null);
-    private MutableLiveData<Boolean> endReached = new MutableLiveData<>(false);
-    private boolean initialized = false;
 
-
-    private volatile boolean pendingRefresh = false;
-    private final ExecutorService io = Executors.newSingleThreadExecutor();
+    private static final int PAGE_SIZE = 20;
     private int offset = 0;
+    private boolean loading = false;
+    private boolean endReached = false;
+    private String error = null;
 
+    private final List<CallRecord> all = new ArrayList<>();
+    private String query = "";
 
-    public MainViewModel(CallRepository repo) {
+    public MainViewModel(@NonNull Application app, CallRepository repo) {
+        super(app);
         this.repo = repo;
     }
 
-    public LiveData<List<CallRecord>> getItems() { return items; }
-    public LiveData<Boolean> getLoading() { return loading; }
-    public LiveData<String> getError() { return error; }
-    public LiveData<Boolean> getEndReached() { return endReached; }
+    public void start() { repo.ensureScanned(); loadFirstPage(); }
 
+    public void setFolderTreeUri(@Nullable Uri treeUriOrNull) {
+        repo.setTreeUri(treeUriOrNull);
+        loadFirstPage();
+    }
 
-    @MainThread public void loadMore(){
-        if (Boolean.TRUE.equals(loading.getValue()) || Boolean.TRUE.equals(endReached.getValue())) {
-            Log.i(TAG, "loadMore: skipped loading=" + loading.getValue() + " end=" + endReached.getValue());
-            return;
-        }
-        Log.i(TAG, "loadMore: start offset=" + offset + " page=" + PAGE_SIZE);
-        loading.setValue(true);
-        error.setValue(null);
-
+    public void loadFirstPage() {
+        if (loading) return;
+        loading = true;
+        offset = 0;
+        endReached = false;
+        all.clear();
         io.submit(() -> {
-            try {
-                List<CallRecord> page = repo.getRecent(offset, PAGE_SIZE);
+            List<CallRecord> page = repo.getRecent(offset, PAGE_SIZE);
+            if (page == null) page = Collections.emptyList();
+            all.addAll(page);
+            endReached = page.size() < PAGE_SIZE;
+            offset += page.size();
+            postSectionsFiltered();
+            loading = false;
+        });
+    }
 
-                if (page == null || page.isEmpty()) {
-                    endReached.postValue(true);
-                } else {
-                    List<CallRecord> current = new ArrayList<>(items.getValue()!= null ? items.getValue() : new ArrayList<>());
-                    current.addAll(page);
-                    items.postValue(current);
-                    offset += page.size();
-                    if (page.size() < PAGE_SIZE)
-                        endReached.postValue(true);
-                }
-            } catch (Exception ex) {
-                Log.e(TAG, "loadMore: error", ex);
-                error.postValue(ex.getMessage());
-            } finally {
-                loading.postValue(false);
-                Log.i(TAG, "loadMore: done offset=" + offset);
-                if (pendingRefresh) {
-                    pendingRefresh = false;
-                    new android.os.Handler(android.os.Looper.getMainLooper()).post(this::refresh);
-                }
-            }
+    @MainThread
+    public void loadMore(RecyclerView.LayoutManager lm){
+        if (loading || endReached || !(lm instanceof LinearLayoutManager)) return;
+        LinearLayoutManager llm = (LinearLayoutManager) lm;
+        int last = llm.findLastVisibleItemPosition();
+        int total = llm.getItemCount();
+        if (total == 0 || last < total - 6) return;
+        loading = true;
+        io.submit(() -> {
+            List<CallRecord> page = repo.getRecent(offset, PAGE_SIZE);
+            if (page == null) page = Collections.emptyList();
+            all.addAll(page);
+            endReached = page.size() < PAGE_SIZE;
+            offset += page.size();
+            postSectionsFiltered();
+            loading = false;
         });
     }
 
 
-    public void setUserDirUri(@Nullable Uri uri) { repo.setUserDirUri(uri); }
-    @MainThread public void refresh() {
-        Log.i(TAG, "refresh: reset");
-        if (Boolean.TRUE.equals(loading.getValue())) {
-            pendingRefresh = true;
-            return;
-        }
-        io.submit(() -> executeRefreshPipeline("refresh"));
+    public void setQuery(String q) {
+        if (q == null) q = "";
+        if (q.equals(query)) return;
+        query = q.trim();
+        io.submit(this::postSectionsFiltered);
     }
 
-    @MainThread public void hardRefresh() { // 하드 리프레시: 외부 변경 시 전체 재스캔
-        Log.i(TAG, "hardRefresh: force rescan");
-        if (Boolean.TRUE.equals(loading.getValue())) { pendingRefresh = true; return; }
-
-        io.submit(() -> executeRefreshPipeline("hardRefresh"));
-    }
-
-    @Override protected void onCleared() { io.shutdownNow(); }
-
-    private void executeRefreshPipeline(@NonNull String reason) {
-        Throwable scanError = null;
-        try {
-            Future<?> future = repo.refreshAsync();
-            if (future != null) {
-                try {
-                    future.get();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    return;
-                } catch (ExecutionException e) {
-                    scanError = e.getCause() != null ? e.getCause() : e;
-                    Log.e(TAG, reason + ": scan failed", scanError);
+    private void postReload() { loadFirstPage(); }
+    private void postSectionsFiltered() {
+        List<CallRecord> src = all;
+        if (!query.isEmpty()) {
+            String q = query.toLowerCase(Locale.ROOT);
+            List<CallRecord> filtered = new ArrayList<>();
+            for (CallRecord cr : src) {
+                String title = cr.fileName != null ? cr.fileName : "";
+                String dateStr = new SimpleDateFormat("yyyy.MM.dd", Locale.KOREA).format(cr.startedAtEpochMs);
+                if (title.toLowerCase(Locale.ROOT).contains(q) || dateStr.contains(q)) {
+                    filtered.add(cr);
                 }
-            } else {
-                repo.ensureScanned();
             }
-
-            offset = 0;
-            endReached.postValue(false);
-            items.postValue(new ArrayList<>());
-            List<CallRecord> page = repo.getRecent(0, PAGE_SIZE);
-            items.postValue(page);
-            offset = page.size();
-            if (page.size() < PAGE_SIZE) endReached.postValue(true);
-
-            if (scanError != null) {
-                error.postValue(scanError.getMessage());
-            }
-        } catch (Exception ex) {
-            Log.e(TAG, reason + ": error", ex);
-            error.postValue(ex.getMessage());
+            sections.postValue(groupByDay(filtered));
+        } else {
+            sections.postValue(groupByDay(src));
         }
+    }
+
+    private List<FileSection> groupByDay(List<CallRecord> list) {
+        Map<String, List<CallRecord>> buckets = new LinkedHashMap<>();
+        for (CallRecord cr : list) {
+
+            Calendar c = Calendar.getInstance();
+            Calendar now = Calendar.getInstance();
+            Calendar yesterday = (Calendar) now.clone(); yesterday.add(Calendar.DAY_OF_YEAR, -1);
+            c.setTimeInMillis(cr.startedAtEpochMs);
+
+
+            String header;
+            if (now.get(Calendar.YEAR) == c.get(Calendar.YEAR) && now.get(Calendar.DAY_OF_YEAR) == c.get(Calendar.DAY_OF_YEAR))
+                header = getApplication().getString(R.string.label_today);
+            else if (yesterday.get(Calendar.YEAR) == c.get(Calendar.YEAR) && yesterday.get(Calendar.DAY_OF_YEAR) == c.get(Calendar.DAY_OF_YEAR))
+                header = getApplication().getString(R.string.label_yesterday);
+            else
+                header = getApplication().getString(R.string.label_date_month_day, c.get(Calendar.DAY_OF_MONTH) + 1, c.get(Calendar.DATE));
+            buckets.computeIfAbsent(header, k -> new ArrayList<>()).add(cr);
+        }
+        List<FileSection> out = new ArrayList<>();
+        for (Map.Entry<String, List<CallRecord>> e : buckets.entrySet()) {
+            out.add(new FileSection(e.getKey(), e.getValue()));
+        }
+        return out;
     }
 
 }

@@ -29,7 +29,7 @@ public final class AppConfig {
     }
     public static AppConfig get() {
         if (INSTANCE == null)
-            throw new IllegalStateException("Call AppConfig.init(context) First.");
+            throw new IllegalStateException("Call AppConfig.loadFirstPage(context) First.");
         return INSTANCE;
     }
 

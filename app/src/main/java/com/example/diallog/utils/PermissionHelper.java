@@ -13,8 +13,6 @@ import androidx.core.content.ContextCompat;
 public final class PermissionHelper {
     public static final int REQ_READ_AUDIO = 1001;
 
-    private PermissionHelper(){}
-
     @NonNull public static String requiredPermission() {
         if (Build.VERSION.SDK_INT >= 33) return Manifest.permission.READ_MEDIA_AUDIO;
         return Manifest.permission.READ_EXTERNAL_STORAGE;

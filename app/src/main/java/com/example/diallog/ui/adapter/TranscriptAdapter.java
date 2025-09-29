@@ -18,94 +18,63 @@ import com.example.diallog.utils.TimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 목적:
- *  - STT 결과(TranscriptSegment 목록)를 ListAdapter로 표시합니다.
- *  - submitList(newList)만 호출하면 Diff 계산과 부분 갱신을 자동으로 처리합니다.
- */
 public final class TranscriptAdapter extends ListAdapter<TranscriptSegment, TranscriptAdapter.VH> {
     public interface OnItemClick { void onClick(@NonNull TranscriptSegment seg); }
     @NonNull private final OnItemClick onItemClickOrNoop;
 
     public TranscriptAdapter() { this(null); }
 
-    public TranscriptAdapter(@SuppressWarnings("NullableProblems") OnItemClick onItemClick) {
+    public TranscriptAdapter(@Nullable OnItemClick onItemClick) {
         super(DIFF);
-        this.onItemClickOrNoop = onItemClick != null ? onItemClick : seg -> { /* no-op */ };
+        this.onItemClickOrNoop = onItemClick != null ? onItemClick : seg -> {};
     }
     private static final DiffUtil.ItemCallback<TranscriptSegment> DIFF =
             new DiffUtil.ItemCallback<TranscriptSegment>() {
-                @Override
-                public boolean areItemsTheSame(@NonNull TranscriptSegment a, @NonNull TranscriptSegment b) {
+                @Override public boolean areItemsTheSame(@NonNull TranscriptSegment a, @NonNull TranscriptSegment b) {
                     return a.startMs == b.startMs && a.endMs == b.endMs;
                 }
-
-                @Override
-                public boolean areContentsTheSame(@NonNull TranscriptSegment a, @NonNull TranscriptSegment b) {
-                    return a.startMs == b.startMs && a.endMs == b.endMs
-                            && safeEquals(a.text, b.text);
-                }
-
-                private boolean safeEquals(String x, String y) {
-                    if (x == null) return y == null;
-                    return x.equals(y);
+                @Override public boolean areContentsTheSame(@NonNull TranscriptSegment a, @NonNull TranscriptSegment b) {
+                    return a.startMs == b.startMs && a.endMs == b.endMs &&
+                            ((a.text == null && b.text == null) || (a.text != null && a.text.equals(b.text)));
                 }
             };
 
-
     public static final class VH extends RecyclerView.ViewHolder {
-        private final TextView tvText;
+        private final TextView tvTime, tvText;
         private TranscriptSegment bound;
 
         public VH(@NonNull View itemView, @NonNull TranscriptAdapter adapter) {
             super(itemView);
+            tvTime = itemView.findViewById(R.id.tv_time);
             tvText = itemView.findViewById(R.id.tv_text);
-
-            // 클릭 리스너 방어: NO_POSITION이면 즉시 반환
             itemView.setOnClickListener(v -> {
                 int pos = getBindingAdapterPosition();
                 if (pos == RecyclerView.NO_POSITION) return;
                 if (bound != null) adapter.onItemClickOrNoop.onClick(bound);
             });
         }
-        public void bind(@NonNull TranscriptSegment item) {
-            this.bound = item;
-            tvText.setText(item.text);
 
-            TextView time = itemView.findViewById(R.id.tv_time);
-            TextView text = itemView.findViewById(R.id.tv_text);
-            time.setText(TimeFormatter.toMmSs(item.startMs));
-            text.setText(item.text);
+        void bind(@NonNull TranscriptSegment seg) {
+            bound = seg;
+            tvTime.setText(TimeFormatter.toMmSs(seg.startMs));
+            tvText.setText(seg.text);
         }
     }
 
-    @Override
-    public void submitList(@Nullable List<TranscriptSegment> list) {
+
+    @Override public void submitList(@Nullable List<TranscriptSegment> list) {
         super.submitList(copy(list));
     }
-
-    @Override
-    public void submitList(@Nullable List<TranscriptSegment> list, @Nullable Runnable commitCallback) {
-        super.submitList(copy(list), commitCallback);
+    @Override public void submitList(@Nullable List<TranscriptSegment> list, @Nullable Runnable cb) {
+        super.submitList(copy(list), cb);
+    }
+    private @Nullable List<TranscriptSegment> copy(@Nullable List<TranscriptSegment> list) {
+        return list == null ? null : new ArrayList<>(list);
     }
 
-    @Nullable
-    private List<TranscriptSegment> copy(@Nullable List<TranscriptSegment> list) {
-        if (list == null) {
-            return null;
-        }
-        return new ArrayList<>(list);
-    }
-
-    @NonNull @Override
-    public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View v = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_transcript, parent, false);
+    @NonNull @Override public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_transcript, parent, false);
         return new VH(v, this);
     }
-
-    @Override
-    public void onBindViewHolder(@NonNull VH holder, int position) {
-        holder.bind(getItem(position));
-    }
+    @Override public void onBindViewHolder(@NonNull VH h, int pos) { h.bind(getItem(pos)); }
 }
