@@ -16,6 +16,7 @@
     <string name="label_hours_ago">%d시간 전</string>
     <string name="label_days_ago">days_ago</string>
     <string name="label_date_month_day">%d월 %d일</string>
+    <string name="label_date_year_month_day">%d년 %d월 %d일</string>
     <string name="label_created_time">%d:%d %s</string>
     <string name="label_created_date_time">%d년 %월 %일 %d:%d %s</string>
     <string name="label_hms_no_stt">%d시간 %d분 %d초 · STT 미전환</string>
