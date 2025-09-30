@@ -18,14 +18,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class TranscriptAdapter extends ListAdapter<Transcript, TranscriptAdapter.VH> {
-    public interface OnItemClick { void onClick(@NonNull Transcript seg); }
-    @NonNull private final OnItemClick onItemClickOrNoop;
+    public interface OnItemClick { void onClick(@NonNull Transcript t); }
+    @Nullable private final OnItemClick onItemClick;
 
     public TranscriptAdapter() { this(null); }
 
     public TranscriptAdapter(@Nullable OnItemClick onItemClick) {
         super(DIFF);
-        this.onItemClickOrNoop = onItemClick != null ? onItemClick : seg -> {};
+        this.onItemClick = onItemClick;
     }
     private static final DiffUtil.ItemCallback<Transcript> DIFF =
             new DiffUtil.ItemCallback<Transcript>() {
@@ -42,26 +42,27 @@ public final class TranscriptAdapter extends ListAdapter<Transcript, TranscriptA
         private final TextView tvTime, tvText;
         private Transcript bound;
 
-        public VH(@NonNull View itemView, @NonNull TranscriptAdapter adapter) {
+        VH(@NonNull View itemView, @Nullable OnItemClick onItemClick) {
             super(itemView);
             tvTime = itemView.findViewById(R.id.tv_time);
             tvText = itemView.findViewById(R.id.tv_text);
+
             itemView.setOnClickListener(v -> {
                 int pos = getBindingAdapterPosition();
-                if (pos == RecyclerView.NO_POSITION) return;
-                if (bound != null) adapter.onItemClickOrNoop.onClick(bound);
+                if (pos == RecyclerView.NO_POSITION || bound == null) return;
+                if (onItemClick != null) onItemClick.onClick(bound);
             });
         }
 
-        void bind(@NonNull Transcript seg) {
-            bound = seg;
+        void bind(@NonNull Transcript t) {
+            bound = t;
 
-            long totalSec = seg.startMs / 1000;
-
+            long totalSec = t.startMs / 1000;
             tvTime.setText(tvTime.getContext().getString(R.string.label_timestamp_time,
                     totalSec / 60, totalSec % 60));
-            tvText.setText(seg.text);
+            tvText.setText(t.text == null ? "" : t.text);
         }
+
     }
 
 
@@ -75,9 +76,15 @@ public final class TranscriptAdapter extends ListAdapter<Transcript, TranscriptA
         return list == null ? null : new ArrayList<>(list);
     }
 
-    @NonNull @Override public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_transcript, parent, false);
-        return new VH(v, this);
+    @NonNull @Override
+    public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View v = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.item_transcript, parent, false);
+        return new VH(v, onItemClick);
     }
-    @Override public void onBindViewHolder(@NonNull VH h, int pos) { h.bind(getItem(pos)); }
+
+    @Override
+    public void onBindViewHolder(@NonNull VH holder, int position) {
+        holder.bind(getItem(position));
+    }
 }
