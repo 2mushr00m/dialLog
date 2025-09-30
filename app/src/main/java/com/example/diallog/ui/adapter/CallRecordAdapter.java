@@ -134,6 +134,7 @@ public final class CallRecordAdapter extends ListAdapter<CallRecord, CallRecordA
                 } else {
                     summaryText = tvSummary.getContext().getString(R.string.label_hms_no_stt, diffHour, diffMin % 60, diffSec % 60);
                 }
+                tvSummary.setTextColor(tvSummary.getContext().getColor(R.color.lightGray_700));
             }
             tvSummary.setText(summaryText);
         }

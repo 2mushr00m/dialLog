@@ -79,10 +79,12 @@ public final class MainViewModel extends AndroidViewModel {
     public void loadMore(RecyclerView.LayoutManager lm){
         if (loading || endReached || !(lm instanceof LinearLayoutManager)) return;
         LinearLayoutManager llm = (LinearLayoutManager) lm;
+
         int last = llm.findLastVisibleItemPosition();
         int total = llm.getItemCount();
         if (total == 0 || last < total - 6) return;
         loading = true;
+
         io.submit(() -> {
             List<CallRecord> page = repo.getRecent(offset, PAGE_SIZE);
             if (page == null) page = Collections.emptyList();

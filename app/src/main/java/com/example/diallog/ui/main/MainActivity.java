@@ -58,10 +58,6 @@ public final class MainActivity extends AppCompatActivity {
                 .get(MainViewModel.class);
         vm.getSections().observe(this, this::renderSections);
         vm.start();
-//        vm.loading().observe(this, loading -> {
-//        });
-//        vm.error().observe(this, e -> {
-//        });
 
         rv.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {

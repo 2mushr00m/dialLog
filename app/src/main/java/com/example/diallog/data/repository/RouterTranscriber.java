@@ -10,7 +10,7 @@ import androidx.annotation.Nullable;
 
 import com.example.diallog.R;
 import com.example.diallog.data.model.Transcript;
-import com.example.diallog.data.model.TranscriptionResult;
+import com.example.diallog.data.model.TranscriberResult;
 import com.example.diallog.utils.AudioSnipper;
 import com.example.diallog.utils.LangMap;
 
@@ -38,18 +38,18 @@ public final class RouterTranscriber implements Transcriber {
     }
 
     @Override
-    public @NonNull TranscriptionResult transcribe(@NonNull Uri audioUri) {
+    public @NonNull TranscriberResult transcribe(@NonNull Uri audioUri) {
         return transcribeWithRouting(audioUri);
     }
 
 
-    public @NonNull TranscriptionResult transcribeWithRouting(@NonNull Uri audioUri) {
+    public @NonNull TranscriberResult transcribeWithRouting(@NonNull Uri audioUri) {
         long routeStart = SystemClock.elapsedRealtime();
 
         AudioSnipper snipper = new AudioSnipper(null, R.raw.sample1, "sample1_snip.mp3");
         AudioSnipper.SnippedAudio snippedAudio = snipper.snipHead(audioUri, SNIP_SECONDS);
         long quickStart = SystemClock.elapsedRealtime();
-        TranscriptionResult quickResult = null;
+        TranscriberResult quickResult = null;
         if (snippedAudio != null && !snippedAudio.isEmpty()) {
             try {
                 quickResult = google.transcribeQuick(snippedAudio.data, snippedAudio.sampleRateHz, DEFAULT_LANGUAGE_CODE);
@@ -78,14 +78,14 @@ public final class RouterTranscriber implements Transcriber {
         String route = routePrefix + "->google";
         String finalLanguage = LangMap.toGoogleCode(languageTag);
 
-        TranscriptionResult finalResult;
+        TranscriberResult finalResult;
         List<Transcript> finalSegments = Collections.emptyList();
 
         String clovaLanguage = LangMap.toClovaCode(languageTag);
         if (clovaLanguage != null) {
             Log.i(TAG, "route.decision provider=clova lang=" + clovaLanguage);
             try {
-                TranscriptionResult clovaResult = clova.transcribe(audioUri);
+                TranscriberResult clovaResult = clova.transcribe(audioUri);
                 finalSegments = copySegments(clovaResult.segments);
                 provider = "clova";
                 route = routePrefix + "->clova";
@@ -100,7 +100,7 @@ public final class RouterTranscriber implements Transcriber {
         }
 
         Log.i(TAG, "route.decision provider=google lang=" + finalLanguage);
-        TranscriptionResult googleResult = google.transcribe(audioUri, finalLanguage, GoogleTranscriber.Mode.FULL);
+        TranscriberResult googleResult = google.transcribe(audioUri, finalLanguage, GoogleTranscriber.Mode.FULL);
         finalSegments = copySegments(googleResult.segments);
         finalResult = buildFinal(finalSegments, provider, route, snippetLen, languageTag, finalLanguage, routeStart);
         return finalResult;
@@ -131,14 +131,14 @@ public final class RouterTranscriber implements Transcriber {
         return "";
     }
 
-    private TranscriptionResult buildFinal(@NonNull List<Transcript> segments,
-                                           @NonNull String provider,
-                                           @NonNull String route,
-                                           int snippetLen,
-                                           @Nullable String detectedTag,
-                                           @NonNull String finalLanguageCode,
-                                           long routeStart) {
-        TranscriptionResult.Metadata metadata = new TranscriptionResult.Metadata(
+    private TranscriberResult buildFinal(@NonNull List<Transcript> segments,
+                                         @NonNull String provider,
+                                         @NonNull String route,
+                                         int snippetLen,
+                                         @Nullable String detectedTag,
+                                         @NonNull String finalLanguageCode,
+                                         long routeStart) {
+        TranscriberResult.Metadata metadata = new TranscriberResult.Metadata(
                 provider,
                 route,
                 snippetLen,
@@ -146,6 +146,6 @@ public final class RouterTranscriber implements Transcriber {
                 finalLanguageCode
         );
         Log.i(TAG, "final.done provider=" + provider + " totalMs=" + (SystemClock.elapsedRealtime() - routeStart));
-        return new TranscriptionResult(segments, true, metadata);
+        return new TranscriberResult(segments, metadata, true);
     }
 }

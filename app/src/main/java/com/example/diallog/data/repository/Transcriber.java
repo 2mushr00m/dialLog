@@ -4,14 +4,14 @@ import android.net.Uri;
 
 import androidx.annotation.NonNull;
 
-import com.example.diallog.data.model.TranscriptionResult;
+import com.example.diallog.data.model.TranscriberResult;
 
 
 public interface Transcriber {
     @NonNull
-    TranscriptionResult transcribe(@NonNull Uri audioUri);
+    TranscriberResult transcribe(@NonNull Uri audioUri);
 
-    default @NonNull TranscriptionResult transcribe(@NonNull Uri audioUri, @NonNull String languageCode) {
+    default @NonNull TranscriberResult transcribe(@NonNull Uri audioUri, @NonNull String languageCode) {
         return transcribe(audioUri);
     }
 }

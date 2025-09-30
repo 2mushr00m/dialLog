@@ -8,29 +8,29 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public final class TranscriptionResult {
+public final class TranscriberResult {
+    @Nullable public final Metadata metadata;
     public final List<Transcript> segments;
     public final boolean isFinal;
-    @Nullable public final Metadata metadata;
 
-    public TranscriptionResult(@NonNull List<Transcript> segments,
-                               boolean isFinal,
-                               @Nullable Metadata metadata) {
-        this.segments = Collections.unmodifiableList(new ArrayList<>(segments));
-        this.isFinal = isFinal;
+    public TranscriberResult(@NonNull List<Transcript> segments,
+                             @Nullable Metadata metadata,
+                             boolean isFinal) {
+        this.segments = List.copyOf(segments);
         this.metadata = metadata;
+        this.isFinal = isFinal;
     }
 
     @NonNull
-    public static TranscriptionResult finalResult(@NonNull List<Transcript> segments,
-                                                  @Nullable Metadata metadata) {
-        return new TranscriptionResult(segments, true, metadata);
+    public static TranscriberResult finalResult(@NonNull List<Transcript> segments,
+                                                @Nullable Metadata metadata) {
+        return new TranscriberResult(segments, metadata, true);
     }
 
     @NonNull
-    public static TranscriptionResult interim(@NonNull List<Transcript> segments,
-                                              @Nullable Metadata metadata) {
-        return new TranscriptionResult(segments, false, metadata);
+    public static TranscriberResult interim(@NonNull List<Transcript> segments,
+                                            @Nullable Metadata metadata) {
+        return new TranscriberResult(segments, metadata, false);
     }
 
     public static final class Metadata {

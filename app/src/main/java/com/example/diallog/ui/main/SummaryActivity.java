@@ -1,7 +1,9 @@
 package com.example.diallog.ui.main;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -17,15 +19,18 @@ import com.example.diallog.data.repository.cache.CachedTranscriber;
 import com.example.diallog.data.repository.cache.FileTranscriptCache;
 import com.example.diallog.data.repository.cache.TranscriptCache;
 import com.example.diallog.ui.adapter.TranscriptAdapter;
+import com.example.diallog.ui.adapter.TranscriptSectionAdapter;
+import com.example.diallog.ui.viewmodel.MainVMFactory;
+import com.example.diallog.ui.viewmodel.MainViewModel;
 import com.example.diallog.ui.viewmodel.SummaryVMFactory;
 import com.example.diallog.ui.viewmodel.SummaryViewModel;
 
 public final class SummaryActivity extends AppCompatActivity {
-    public static final String EXTRA_URI = "audioUri";
 
+    public static final String EXTRA_URI = "audioUri";
     private SummaryViewModel vm;
     private RecyclerView rv;
-    private TranscriptAdapter adapter;
+    private TranscriptSectionAdapter adapter;
 
     @Override
     protected void onCreate(@Nullable Bundle b) {
@@ -36,20 +41,19 @@ public final class SummaryActivity extends AppCompatActivity {
         setContentView(R.layout.activity_summary);
         setSupportActionBar(findViewById(R.id.toolbar));
 
-        rv = findViewById(R.id.rv_transcript_section);
+        rv = findViewById(R.id.rv_sections);
         rv.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new TranscriptAdapter(uri -> {
-        });
+        rv.setItemAnimator(null);
+        adapter = new TranscriptSectionAdapter();
         rv.setAdapter(adapter);
 
-        Transcriber base = TranscriberProvider.buildTranscriber();
-        TranscriptCache cache = new FileTranscriptCache(this, 200);
-        Transcriber transcriber = new CachedTranscriber(base, cache);
+        vm = new ViewModelProvider(
+                this, new SummaryVMFactory(getApplication())
+        ).get(SummaryViewModel.class);
 
-        vm = new ViewModelProvider(this, new SummaryVMFactory(transcriber))
-                .get(SummaryViewModel.class);
-
-        vm.segments().observe(this, adapter::submitList);
+        vm.sections().observe(this, sections -> {
+            if (sections != null) adapter.submitList(sections);
+        });
         vm.loading().observe(this, loading -> {
             if (loading == null) loading = false;
         });
@@ -59,12 +63,11 @@ public final class SummaryActivity extends AppCompatActivity {
             }
         });
 
-        // 입력 URI 수신
-        Uri audioUri = getIntent().getParcelableExtra(EXTRA_URI);
+        Uri audioUri = getIntent().getParcelableExtra(SummaryActivity.EXTRA_URI);
         if (audioUri != null) {
             vm.transcribe(audioUri);
         } else {
-//            Toast.makeText(this, R.string.error_no_audio_uri, Toast.LENGTH_SHORT).show();
+            // Toast.makeText(this, R.string.error_no_audio_uri, Toast.LENGTH_SHORT).show();
         }
     }
 

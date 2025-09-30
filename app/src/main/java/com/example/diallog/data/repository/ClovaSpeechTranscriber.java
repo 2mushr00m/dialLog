@@ -10,7 +10,7 @@ import static okhttp3.MediaType.parse;
 
 import com.example.diallog.R;
 import com.example.diallog.data.model.Transcript;
-import com.example.diallog.data.model.TranscriptionResult;
+import com.example.diallog.data.model.TranscriberResult;
 import com.example.diallog.data.network.ClovaSpeechResponse;
 import com.example.diallog.data.network.ClovaSpeechApi;
 import com.example.diallog.BuildConfig;
@@ -41,11 +41,11 @@ public final class ClovaSpeechTranscriber implements Transcriber {
     }
 
     @Override
-    public @NonNull TranscriptionResult transcribe(@NonNull Uri audioUri) {
+    public @NonNull TranscriberResult transcribe(@NonNull Uri audioUri) {
         long t0 = System.nanoTime();
         try {
             List<Transcript> segments = transcribeInternal(audioUri);
-            return TranscriptionResult.finalResult(segments, null);
+            return TranscriberResult.finalResult(segments, null);
         } catch (Exception e) {
             Log.e(TAG, "STT 실패: " + audioUri, e);
             if (fallback != null && fallback != this)
@@ -101,7 +101,7 @@ public final class ClovaSpeechTranscriber implements Transcriber {
             // 4) 매핑
             ClovaSpeechResponse b = resp.body();
             if (b != null && b.segments != null && !b.segments.isEmpty()) {
-                Log.i(TAG, "매핑: segments " + b.segments.size() + "개");
+                Log.i(TAG, "매핑: sections " + b.segments.size() + "개");
                 for (ClovaSpeechResponse.Seg s : b.segments) {
                     String speakerLabel = (s.speaker != null) ? s.speaker.label : null;
                     ret.add(new Transcript(s.text, s.startMs, s.endMs, s.confidence, speakerLabel));

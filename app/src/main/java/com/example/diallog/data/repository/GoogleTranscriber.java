@@ -10,7 +10,7 @@ import androidx.annotation.Nullable;
 
 import com.example.diallog.R;
 import com.example.diallog.auth.AuthTokenProvider;
-import com.example.diallog.data.model.TranscriptionResult;
+import com.example.diallog.data.model.TranscriberResult;
 import com.example.diallog.data.model.Transcript;
 import com.example.diallog.data.network.GoogleOperationResponse;
 import com.example.diallog.data.network.GoogleSttApi;
@@ -94,40 +94,40 @@ public final class GoogleTranscriber implements Transcriber {
     }
 
     @Override
-    public @NonNull TranscriptionResult transcribe(@NonNull Uri audioUri) {
+    public @NonNull TranscriberResult transcribe(@NonNull Uri audioUri) {
         return transcribe(AudioInput.forUri(audioUri), language, Mode.FULL);
     }
 
     @Override
-    public @NonNull TranscriptionResult transcribe(@NonNull Uri audioUri, @NonNull String languageCode) {
+    public @NonNull TranscriberResult transcribe(@NonNull Uri audioUri, @NonNull String languageCode) {
         return transcribe(AudioInput.forUri(audioUri), languageCode, Mode.FULL);
     }
 
 
-    public @NonNull TranscriptionResult transcribe(@NonNull AudioInput input,
-                                                   @NonNull String languageCode,
-                                                   @NonNull Mode mode) {
+    public @NonNull TranscriberResult transcribe(@NonNull AudioInput input,
+                                                 @NonNull String languageCode,
+                                                 @NonNull Mode mode) {
         if (mode == Mode.QUICK) {
             return transcribeQuick(input, languageCode);
         }
         return transcribeFull(input, languageCode);
     }
 
-    public @NonNull TranscriptionResult transcribe(@NonNull Uri audioUri,
-                                                   @NonNull String languageCode,
-                                                   @NonNull Mode mode) {
+    public @NonNull TranscriberResult transcribe(@NonNull Uri audioUri,
+                                                 @NonNull String languageCode,
+                                                 @NonNull Mode mode) {
         return transcribe(AudioInput.forUri(audioUri), languageCode, mode);
     }
 
-    public @NonNull TranscriptionResult transcribeQuick(@NonNull byte[] pcm16k,
-                                                        int sampleRateHz,
-                                                        @NonNull String languageCode) {
+    public @NonNull TranscriberResult transcribeQuick(@NonNull byte[] pcm16k,
+                                                      int sampleRateHz,
+                                                      @NonNull String languageCode) {
         return transcribe(AudioInput.forLinear16(pcm16k, sampleRateHz), languageCode, Mode.QUICK);
     }
 
 
 
-    private TranscriptionResult transcribeQuick(@NonNull AudioInput input, @NonNull String languageCode) {
+    private TranscriberResult transcribeQuick(@NonNull AudioInput input, @NonNull String languageCode) {
         if (!input.hasInline()) {
             throw new IllegalArgumentException("QUICK mode requires inline PCM content");
         }
@@ -150,7 +150,7 @@ public final class GoogleTranscriber implements Transcriber {
             }
 
             List<Transcript> segments = mapResponse(response.body());
-            return TranscriptionResult.interim(segments, null);
+            return TranscriberResult.interim(segments, null);
         } catch (IOException ioe) {
             throw new RuntimeException("Google STT I/O error: " + ioe.getMessage(), ioe);
         } catch (Exception e) {
@@ -160,7 +160,7 @@ public final class GoogleTranscriber implements Transcriber {
 
 
 
-    private TranscriptionResult transcribeFull(@NonNull AudioInput input, @NonNull String languageCode) {
+    private TranscriberResult transcribeFull(@NonNull AudioInput input, @NonNull String languageCode) {
         if (!input.hasUri()) {
             throw new IllegalArgumentException("FULL mode requires a URI input");
         }
@@ -185,7 +185,7 @@ public final class GoogleTranscriber implements Transcriber {
             }
 
             List<Transcript> segments = mapResponse(body);
-            return TranscriptionResult.finalResult(segments, null);
+            return TranscriberResult.finalResult(segments, null);
         } catch (IOException ioe) {
             throw new RuntimeException("Google STT I/O error: " + ioe.getMessage(), ioe);
         } catch (InterruptedException ie) {
