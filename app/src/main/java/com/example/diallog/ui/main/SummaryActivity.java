@@ -1,6 +1,5 @@
 package com.example.diallog.ui.main;
 
-import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Toast;
@@ -17,9 +16,7 @@ import com.example.diallog.data.repository.*;
 import com.example.diallog.data.repository.cache.CachedTranscriber;
 import com.example.diallog.data.repository.cache.FileTranscriptCache;
 import com.example.diallog.data.repository.cache.TranscriptCache;
-import com.example.diallog.ui.adapter.FileSectionAdapter;
 import com.example.diallog.ui.adapter.TranscriptAdapter;
-import com.example.diallog.ui.adapter.TranscriptSectionAdapter;
 import com.example.diallog.ui.viewmodel.SummaryVMFactory;
 import com.example.diallog.ui.viewmodel.SummaryViewModel;
 
@@ -40,14 +37,11 @@ public final class SummaryActivity extends AppCompatActivity {
         setSupportActionBar(findViewById(R.id.toolbar));
 
         rv = findViewById(R.id.rv_transcript_section);
-
-
         rv.setLayoutManager(new LinearLayoutManager(this));
         adapter = new TranscriptAdapter(uri -> {
         });
         rv.setAdapter(adapter);
 
-        // Transcriber + 캐시 래핑
         Transcriber base = TranscriberProvider.buildTranscriber();
         TranscriptCache cache = new FileTranscriptCache(this, 200);
         Transcriber transcriber = new CachedTranscriber(base, cache);

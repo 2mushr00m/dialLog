@@ -4,7 +4,7 @@ import android.net.Uri;
 
 import androidx.annotation.NonNull;
 
-import com.example.diallog.data.model.TranscriptSegment;
+import com.example.diallog.data.model.Transcript;
 import com.example.diallog.data.model.TranscriptionResult;
 import com.example.diallog.data.repository.Transcriber;
 
@@ -27,7 +27,7 @@ public final class CachedTranscriber implements Transcriber {
 
     @Override
     public @NonNull TranscriptionResult transcribe(@NonNull Uri audioUri) {
-        List<TranscriptSegment> hit = cache.get(audioUri);
+        List<Transcript> hit = cache.get(audioUri);
         if (!hit.isEmpty()) {
             return TranscriptionResult.finalResult(hit, null);
         }

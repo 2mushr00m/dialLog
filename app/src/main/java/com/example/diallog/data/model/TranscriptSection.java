@@ -5,9 +5,14 @@ import androidx.annotation.NonNull;
 import java.util.List;
 
 public class TranscriptSection {
-    public final List<TranscriptSegment> items;
+    public final String allText;
+    public final int speakerId;
 
-    public TranscriptSection(@NonNull List<TranscriptSegment> items) {
+    public final List<Transcript> items;
+
+    public TranscriptSection(String allText, int speakerId, @NonNull List<Transcript> items) {
+        this.allText = allText;
+        this.speakerId = speakerId;
         this.items = items;
     }
 }

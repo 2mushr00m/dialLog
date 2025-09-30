@@ -9,7 +9,7 @@ import androidx.annotation.NonNull;
 import static okhttp3.MediaType.parse;
 
 import com.example.diallog.R;
-import com.example.diallog.data.model.TranscriptSegment;
+import com.example.diallog.data.model.Transcript;
 import com.example.diallog.data.model.TranscriptionResult;
 import com.example.diallog.data.network.ClovaSpeechResponse;
 import com.example.diallog.data.network.ClovaSpeechApi;
@@ -44,7 +44,7 @@ public final class ClovaSpeechTranscriber implements Transcriber {
     public @NonNull TranscriptionResult transcribe(@NonNull Uri audioUri) {
         long t0 = System.nanoTime();
         try {
-            List<TranscriptSegment> segments = transcribeInternal(audioUri);
+            List<Transcript> segments = transcribeInternal(audioUri);
             return TranscriptionResult.finalResult(segments, null);
         } catch (Exception e) {
             Log.e(TAG, "STT 실패: " + audioUri, e);
@@ -57,9 +57,9 @@ public final class ClovaSpeechTranscriber implements Transcriber {
     }
 
     @NonNull
-    private List<TranscriptSegment> transcribeInternal(@NonNull Uri audioUri) {
+    private List<Transcript> transcribeInternal(@NonNull Uri audioUri) {
         Log.i(TAG, "STT 진행 시작: uri=" + audioUri);
-        List<TranscriptSegment> ret = new ArrayList<>();
+        List<Transcript> ret = new ArrayList<>();
         AudioUriResolver.ResolvedAudio resolved = null;
 
         try {
@@ -104,11 +104,11 @@ public final class ClovaSpeechTranscriber implements Transcriber {
                 Log.i(TAG, "매핑: segments " + b.segments.size() + "개");
                 for (ClovaSpeechResponse.Seg s : b.segments) {
                     String speakerLabel = (s.speaker != null) ? s.speaker.label : null;
-                    ret.add(new TranscriptSegment(s.text, s.startMs, s.endMs, s.confidence, speakerLabel));
+                    ret.add(new Transcript(s.text, s.startMs, s.endMs, s.confidence, speakerLabel));
                 }
             } else if (b != null && b.text != null && !b.text.isEmpty()) {
                 Log.i(TAG, "싱글 텍스트: 전체 텍스트 길이=" + b.text.length());
-                ret.add(new TranscriptSegment(b.text, 0, 0, 1.0F, null));
+                ret.add(new Transcript(b.text, 0, 0, 1.0F, null));
             }
 
             return ret;

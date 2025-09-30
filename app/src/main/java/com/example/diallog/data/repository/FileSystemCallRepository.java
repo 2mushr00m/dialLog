@@ -171,7 +171,6 @@ public final class FileSystemCallRepository implements CallRepository {
 
         Uri[] volumes = {
                 MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL),
-                MediaStore.Audio.Media.getContentUri("external_primary")
         };
 
         for (Uri vol : volumes) {
@@ -200,48 +199,6 @@ public final class FileSystemCallRepository implements CallRepository {
                 }
             } catch (Throwable ignore) {}
         }
-
-        out.addAll(scanFilesBackup());
-        return out;
-    }
-    private @NonNull List<CallRecord> scanFilesBackup() {
-        List<CallRecord> out = new ArrayList<>();
-        Uri files = MediaStore.Files.getContentUri("external");
-        String[] proj = {
-                MediaStore.Files.FileColumns._ID,
-                MediaStore.Files.FileColumns.DISPLAY_NAME,
-                MediaStore.Files.FileColumns.MIME_TYPE,
-                MediaStore.Files.FileColumns.DATE_MODIFIED,
-                MediaStore.Files.FileColumns.DATE_ADDED
-        };
-        String sel = MediaStore.Files.FileColumns.MEDIA_TYPE + "=" +
-                MediaStore.Files.FileColumns.MEDIA_TYPE_AUDIO + " AND " +
-                MediaStore.Files.FileColumns.IS_PENDING + "=0";
-        String order = MediaStore.Files.FileColumns.DATE_MODIFIED + " DESC";
-
-        try (Cursor c = cr.query(files, proj, sel, null, order)) {
-            if (c == null) return out;
-
-            int idIdx   = c.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID);
-            int nameIdx = c.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME);
-            int modIdx  = c.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATE_MODIFIED);
-            int addIdx  = c.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATE_ADDED);
-
-            while (c.moveToNext()) {
-                long id = c.getLong(idIdx);
-                String fileName = c.getString(nameIdx);
-                if (!isAudioByName(fileName)) continue;
-
-                long tsSec = c.getLong(modIdx);
-                if (tsSec == 0) tsSec = c.getLong(addIdx);
-                long epochMs = tsSec > 0 ? tsSec * 1000L : System.currentTimeMillis();
-
-                Uri uri = ContentUris.withAppendedId(MediaStore.Files.getContentUri("external"), id);
-
-                CallRecord r = new CallRecord(uri, fileName, probeDuration(uri), epochMs);
-                out.add(r);
-            }
-        } catch (Throwable ignore) {}
 
         return out;
     }

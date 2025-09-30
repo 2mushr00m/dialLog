@@ -28,11 +28,11 @@
         app:layout_constraintEnd_toEndOf="parent">
 
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_files"
+            android:id="@+id/rv_items"
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:nestedScrollingEnabled="false"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-            tools:listitem="@layout/item_file"
+            tools:listitem="@layout/item_call_record"
             tools:itemCount="3"/>
     </com.google.android.material.card.MaterialCardView>
 

@@ -5,15 +5,12 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
-public final class TimeFormatter {
+public final class TextFormatter {
     private static final ThreadLocal<SimpleDateFormat> DF = ThreadLocal.withInitial(() -> {
         SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.KOREA);
         f.setTimeZone(TimeZone.getTimeZone("Asia/Seoul"));
         return f;
     });
-    public static String toYmdHm(long utcMs){
-        return DF.get().format(new Date(utcMs));
-    }
 
     public static String toMmSs(long ms) {
         long totalSec = ms / 1000;

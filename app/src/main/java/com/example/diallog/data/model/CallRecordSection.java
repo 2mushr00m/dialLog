@@ -4,10 +4,10 @@ import androidx.annotation.NonNull;
 
 import java.util.List;
 
-public final class FileSection {
+public final class CallRecordSection {
     public final String header;
     public final List<CallRecord> items;
-    public FileSection(@NonNull String header, @NonNull List<CallRecord> items) {
+    public CallRecordSection(@NonNull String header, @NonNull List<CallRecord> items) {
         this.header = header;
         this.items = items;
     }

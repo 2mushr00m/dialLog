@@ -11,7 +11,7 @@ import androidx.annotation.Nullable;
 import com.example.diallog.R;
 import com.example.diallog.auth.AuthTokenProvider;
 import com.example.diallog.data.model.TranscriptionResult;
-import com.example.diallog.data.model.TranscriptSegment;
+import com.example.diallog.data.model.Transcript;
 import com.example.diallog.data.network.GoogleOperationResponse;
 import com.example.diallog.data.network.GoogleSttApi;
 import com.example.diallog.data.network.GoogleSttRequest;
@@ -149,7 +149,7 @@ public final class GoogleTranscriber implements Transcriber {
                 throw new IOException("Google STT quick failed: HTTP " + response.code() + errorMessage);
             }
 
-            List<TranscriptSegment> segments = mapResponse(response.body());
+            List<Transcript> segments = mapResponse(response.body());
             return TranscriptionResult.interim(segments, null);
         } catch (IOException ioe) {
             throw new RuntimeException("Google STT I/O error: " + ioe.getMessage(), ioe);
@@ -184,7 +184,7 @@ public final class GoogleTranscriber implements Transcriber {
                 body = awaitOperation(operation.name);
             }
 
-            List<TranscriptSegment> segments = mapResponse(body);
+            List<Transcript> segments = mapResponse(body);
             return TranscriptionResult.finalResult(segments, null);
         } catch (IOException ioe) {
             throw new RuntimeException("Google STT I/O error: " + ioe.getMessage(), ioe);
@@ -313,8 +313,8 @@ public final class GoogleTranscriber implements Transcriber {
         return request;
     }
 
-    private static List<TranscriptSegment> mapResponse(@Nullable GoogleSttResponse body) {
-        List<TranscriptSegment> segments = new ArrayList<>();
+    private static List<Transcript> mapResponse(@Nullable GoogleSttResponse body) {
+        List<Transcript> segments = new ArrayList<>();
         if (body == null || body.results == null || body.results.isEmpty()) {
             return segments;
         }
@@ -387,7 +387,7 @@ public final class GoogleTranscriber implements Transcriber {
                     endMs = startMs;
                 }
 
-                segments.add(new TranscriptSegment(transcript, startMs, endMs, 1.0F, null));
+                segments.add(new Transcript(transcript, startMs, endMs, 1.0F, null));
                 if (endMs > lastEndMs) {
                     lastEndMs = endMs;
                 }

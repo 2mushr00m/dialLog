@@ -2,14 +2,10 @@ package com.example.diallog.ui.main;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
-import android.widget.ProgressBar;
 import android.widget.SearchView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -19,7 +15,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.diallog.R;
 import com.example.diallog.config.AppConfig;
-import com.example.diallog.ui.adapter.FileSectionAdapter;
+import com.example.diallog.ui.adapter.CallRecordSectionAdapter;
 import com.example.diallog.ui.viewmodel.MainVMFactory;
 import com.example.diallog.ui.viewmodel.MainViewModel;
 import com.example.diallog.utils.PermissionHelper;
@@ -32,7 +28,7 @@ public final class MainActivity extends AppCompatActivity {
 
     private MainViewModel vm;
     private RecyclerView rv;
-    private FileSectionAdapter adapter;
+    private CallRecordSectionAdapter adapter;
 
 
     @Override
@@ -51,7 +47,7 @@ public final class MainActivity extends AppCompatActivity {
 
         rv = findViewById(R.id.rv_sections);
         rv.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new FileSectionAdapter(uri -> {
+        adapter = new CallRecordSectionAdapter(uri -> {
             Intent i = new Intent(this, SummaryActivity.class);
             i.putExtra(SummaryActivity.EXTRA_URI, uri);
             startActivity(i);

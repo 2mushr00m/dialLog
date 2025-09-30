@@ -4,8 +4,6 @@ import android.net.Uri;
 
 import androidx.annotation.NonNull;
 
-import java.util.List;
-import com.example.diallog.data.model.TranscriptSegment;
 import com.example.diallog.data.model.TranscriptionResult;
 
 

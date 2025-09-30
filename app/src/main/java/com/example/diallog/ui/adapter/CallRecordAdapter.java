@@ -17,12 +17,12 @@ import com.example.diallog.data.model.CallRecord;
 import java.util.Calendar;
 import java.util.Objects;
 
-public final class FileAdapter extends ListAdapter<CallRecord, FileAdapter.VH> {
+public final class CallRecordAdapter extends ListAdapter<CallRecord, CallRecordAdapter.VH> {
     public interface OnItemClick { void onClick(@NonNull Uri uri); }
     @NonNull private final OnItemClick onItemClick;
 
 
-    public FileAdapter(@NonNull OnItemClick onItemClick) {
+    public CallRecordAdapter(@NonNull OnItemClick onItemClick) {
         super(DIFF);
         this.onItemClick = onItemClick;
     }
@@ -46,7 +46,7 @@ public final class FileAdapter extends ListAdapter<CallRecord, FileAdapter.VH> {
     @NonNull @Override
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_file, parent, false);
+                .inflate(R.layout.item_call_record, parent, false);
         return new VH(v, this);
     }
 
@@ -59,7 +59,7 @@ public final class FileAdapter extends ListAdapter<CallRecord, FileAdapter.VH> {
         private final TextView tvTitle, tvMeta, tvSummary;
         private CallRecord bound;
 
-        public VH(@NonNull View itemView, @NonNull FileAdapter adapter) {
+        public VH(@NonNull View itemView, @NonNull CallRecordAdapter adapter) {
             super(itemView);
             tvTitle   = itemView.findViewById(R.id.tv_title);
             tvMeta    = itemView.findViewById(R.id.tv_meta);
@@ -77,6 +77,7 @@ public final class FileAdapter extends ListAdapter<CallRecord, FileAdapter.VH> {
             // TODO: 통화 목록과 이름 매칭
             // 매칭되는 것이 있다면, 유추되는 전화번호 / 전화번호 등록명으로 연결
             // 매칭되는 것이 없다면, 파일명으로 연결
+            this.bound = cr;
             tvTitle.setText(cr.fileName != null ? cr.fileName : "Call");
 
             long now = System.currentTimeMillis();

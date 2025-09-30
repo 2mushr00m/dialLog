@@ -9,7 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.example.diallog.R;
-import com.example.diallog.data.model.TranscriptSegment;
+import com.example.diallog.data.model.Transcript;
 import com.example.diallog.data.model.TranscriptionResult;
 import com.example.diallog.utils.AudioSnipper;
 import com.example.diallog.utils.LangMap;
@@ -79,7 +79,7 @@ public final class RouterTranscriber implements Transcriber {
         String finalLanguage = LangMap.toGoogleCode(languageTag);
 
         TranscriptionResult finalResult;
-        List<TranscriptSegment> finalSegments = Collections.emptyList();
+        List<Transcript> finalSegments = Collections.emptyList();
 
         String clovaLanguage = LangMap.toClovaCode(languageTag);
         if (clovaLanguage != null) {
@@ -106,7 +106,7 @@ public final class RouterTranscriber implements Transcriber {
         return finalResult;
     }
     @NonNull
-    private static List<TranscriptSegment> copySegments(List<TranscriptSegment> segments) {
+    private static List<Transcript> copySegments(List<Transcript> segments) {
         if (segments == null || segments.isEmpty()) {
             return new ArrayList<>();
         }
@@ -114,8 +114,8 @@ public final class RouterTranscriber implements Transcriber {
     }
 
     @NonNull
-    private static String extractSnippet(@NonNull List<TranscriptSegment> segments) {
-        for (TranscriptSegment segment : segments) {
+    private static String extractSnippet(@NonNull List<Transcript> segments) {
+        for (Transcript segment : segments) {
             if (segment == null) {
                 continue;
             }
@@ -131,7 +131,7 @@ public final class RouterTranscriber implements Transcriber {
         return "";
     }
 
-    private TranscriptionResult buildFinal(@NonNull List<TranscriptSegment> segments,
+    private TranscriptionResult buildFinal(@NonNull List<Transcript> segments,
                                            @NonNull String provider,
                                            @NonNull String route,
                                            int snippetLen,

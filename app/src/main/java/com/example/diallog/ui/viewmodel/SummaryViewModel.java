@@ -8,7 +8,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import com.example.diallog.data.model.TranscriptSegment;
+import com.example.diallog.data.model.Transcript;
 import com.example.diallog.data.model.TranscriptionResult;
 import com.example.diallog.data.repository.MockTranscriber;
 import com.example.diallog.data.repository.Transcriber;
@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public final class SummaryViewModel extends ViewModel {
     private final Transcriber transcriber;
-    private final MutableLiveData<List<TranscriptSegment>> segments = new MutableLiveData<>();
+    private final MutableLiveData<List<Transcript>> segments = new MutableLiveData<>();
     private final MutableLiveData<Boolean> loading = new MutableLiveData<>(false);
     private final MutableLiveData<String> error = new MutableLiveData<>(null);
     private final ExecutorService io = Executors.newSingleThreadExecutor();
@@ -34,7 +34,7 @@ public final class SummaryViewModel extends ViewModel {
         this.transcriber = transcriber;
     }
 
-    public LiveData<List<TranscriptSegment>> segments(){ return segments; }
+    public LiveData<List<Transcript>> segments(){ return segments; }
     public LiveData<Boolean> loading(){ return loading; }
     public LiveData<String> error(){ return error; }
 

@@ -9,11 +9,11 @@ import java.util.List;
 import java.util.Objects;
 
 public final class TranscriptionResult {
-    public final List<TranscriptSegment> segments;
+    public final List<Transcript> segments;
     public final boolean isFinal;
     @Nullable public final Metadata metadata;
 
-    public TranscriptionResult(@NonNull List<TranscriptSegment> segments,
+    public TranscriptionResult(@NonNull List<Transcript> segments,
                                boolean isFinal,
                                @Nullable Metadata metadata) {
         this.segments = Collections.unmodifiableList(new ArrayList<>(segments));
@@ -22,13 +22,13 @@ public final class TranscriptionResult {
     }
 
     @NonNull
-    public static TranscriptionResult finalResult(@NonNull List<TranscriptSegment> segments,
+    public static TranscriptionResult finalResult(@NonNull List<Transcript> segments,
                                                   @Nullable Metadata metadata) {
         return new TranscriptionResult(segments, true, metadata);
     }
 
     @NonNull
-    public static TranscriptionResult interim(@NonNull List<TranscriptSegment> segments,
+    public static TranscriptionResult interim(@NonNull List<Transcript> segments,
                                               @Nullable Metadata metadata) {
         return new TranscriptionResult(segments, false, metadata);
     }

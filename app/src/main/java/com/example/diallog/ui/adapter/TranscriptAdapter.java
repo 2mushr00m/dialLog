@@ -12,14 +12,13 @@ import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.diallog.R;
-import com.example.diallog.data.model.TranscriptSegment;
-import com.example.diallog.utils.TimeFormatter;
+import com.example.diallog.data.model.Transcript;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public final class TranscriptAdapter extends ListAdapter<TranscriptSegment, TranscriptAdapter.VH> {
-    public interface OnItemClick { void onClick(@NonNull TranscriptSegment seg); }
+public final class TranscriptAdapter extends ListAdapter<Transcript, TranscriptAdapter.VH> {
+    public interface OnItemClick { void onClick(@NonNull Transcript seg); }
     @NonNull private final OnItemClick onItemClickOrNoop;
 
     public TranscriptAdapter() { this(null); }
@@ -28,12 +27,12 @@ public final class TranscriptAdapter extends ListAdapter<TranscriptSegment, Tran
         super(DIFF);
         this.onItemClickOrNoop = onItemClick != null ? onItemClick : seg -> {};
     }
-    private static final DiffUtil.ItemCallback<TranscriptSegment> DIFF =
-            new DiffUtil.ItemCallback<TranscriptSegment>() {
-                @Override public boolean areItemsTheSame(@NonNull TranscriptSegment a, @NonNull TranscriptSegment b) {
+    private static final DiffUtil.ItemCallback<Transcript> DIFF =
+            new DiffUtil.ItemCallback<Transcript>() {
+                @Override public boolean areItemsTheSame(@NonNull Transcript a, @NonNull Transcript b) {
                     return a.startMs == b.startMs && a.endMs == b.endMs;
                 }
-                @Override public boolean areContentsTheSame(@NonNull TranscriptSegment a, @NonNull TranscriptSegment b) {
+                @Override public boolean areContentsTheSame(@NonNull Transcript a, @NonNull Transcript b) {
                     return a.startMs == b.startMs && a.endMs == b.endMs &&
                             ((a.text == null && b.text == null) || (a.text != null && a.text.equals(b.text)));
                 }
@@ -41,7 +40,7 @@ public final class TranscriptAdapter extends ListAdapter<TranscriptSegment, Tran
 
     public static final class VH extends RecyclerView.ViewHolder {
         private final TextView tvTime, tvText;
-        private TranscriptSegment bound;
+        private Transcript bound;
 
         public VH(@NonNull View itemView, @NonNull TranscriptAdapter adapter) {
             super(itemView);
@@ -54,21 +53,25 @@ public final class TranscriptAdapter extends ListAdapter<TranscriptSegment, Tran
             });
         }
 
-        void bind(@NonNull TranscriptSegment seg) {
+        void bind(@NonNull Transcript seg) {
             bound = seg;
-            tvTime.setText(TimeFormatter.toMmSs(seg.startMs));
+
+            long totalSec = seg.startMs / 1000;
+
+            tvTime.setText(tvTime.getContext().getString(R.string.label_timestamp_time,
+                    totalSec / 60, totalSec % 60));
             tvText.setText(seg.text);
         }
     }
 
 
-    @Override public void submitList(@Nullable List<TranscriptSegment> list) {
+    @Override public void submitList(@Nullable List<Transcript> list) {
         super.submitList(copy(list));
     }
-    @Override public void submitList(@Nullable List<TranscriptSegment> list, @Nullable Runnable cb) {
+    @Override public void submitList(@Nullable List<Transcript> list, @Nullable Runnable cb) {
         super.submitList(copy(list), cb);
     }
-    private @Nullable List<TranscriptSegment> copy(@Nullable List<TranscriptSegment> list) {
+    private @Nullable List<Transcript> copy(@Nullable List<Transcript> list) {
         return list == null ? null : new ArrayList<>(list);
     }
 

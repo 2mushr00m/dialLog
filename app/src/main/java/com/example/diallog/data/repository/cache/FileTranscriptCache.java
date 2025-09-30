@@ -3,12 +3,11 @@ package com.example.diallog.data.repository.cache;
 
 import android.content.Context;
 import android.net.Uri;
-import android.provider.MediaStore;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.example.diallog.data.model.TranscriptSegment;
+import com.example.diallog.data.model.Transcript;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -34,7 +33,7 @@ public final class FileTranscriptCache implements TranscriptCache {
     private final File dir;
     private final Context app;
     private final Gson gson = new Gson();
-    private final Type listType = new TypeToken<List<TranscriptSegment>>(){}.getType();
+    private final Type listType = new TypeToken<List<Transcript>>(){}.getType();
     private final int maxEntries;
 
     public FileTranscriptCache(Context ctx, int maxEntries){
@@ -45,7 +44,7 @@ public final class FileTranscriptCache implements TranscriptCache {
         this.maxEntries = Math.max(16, maxEntries);
     }
 
-    @Override public List<TranscriptSegment> get(@NonNull Uri uri) {
+    @Override public List<Transcript> get(@NonNull Uri uri) {
         File f = fileFor(uri);
         if (!f.exists()) {
             misses.incrementAndGet();
@@ -55,7 +54,7 @@ public final class FileTranscriptCache implements TranscriptCache {
         hits.incrementAndGet();
         Log.i(TAG,"hit "+f.getName());
         try (BufferedReader br = new BufferedReader(new FileReader(f))) {
-            List<TranscriptSegment> list = gson.fromJson(br, listType);
+            List<Transcript> list = gson.fromJson(br, listType);
             // LRU 갱신: 마지막 접근 시각을 mtime으로 표시
             //noinspection ResultOfMethodCallIgnored
             f.setLastModified(System.currentTimeMillis());
@@ -63,7 +62,7 @@ public final class FileTranscriptCache implements TranscriptCache {
         } catch (Exception e) { return Collections.emptyList(); }
     }
 
-    @Override public void put(@NonNull Uri uri, @NonNull List<TranscriptSegment> segs) {
+    @Override public void put(@NonNull Uri uri, @NonNull List<Transcript> segs) {
         File f = fileFor(uri);
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(f))) {
             bw.write(gson.toJson(segs, listType));

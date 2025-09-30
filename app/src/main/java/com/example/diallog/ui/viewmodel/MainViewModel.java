@@ -14,7 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.diallog.R;
 import com.example.diallog.data.model.CallRecord;
-import com.example.diallog.data.model.FileSection;
+import com.example.diallog.data.model.CallRecordSection;
 import com.example.diallog.data.repository.CallRepository;
 
 import java.text.SimpleDateFormat;
@@ -31,8 +31,8 @@ import java.util.concurrent.Executors;
 public final class MainViewModel extends AndroidViewModel {
     private static final String TAG = "MainVM";
 
-    private final MutableLiveData<List<FileSection>> sections = new MutableLiveData<>(Collections.emptyList());
-    public LiveData<List<FileSection>> getSections() { return sections; }
+    private final MutableLiveData<List<CallRecordSection>> sections = new MutableLiveData<>(Collections.emptyList());
+    public LiveData<List<CallRecordSection>> getSections() { return sections; }
     private final ExecutorService io = Executors.newSingleThreadExecutor();
 
     private final CallRepository repo;
@@ -102,7 +102,6 @@ public final class MainViewModel extends AndroidViewModel {
         io.submit(this::postSectionsFiltered);
     }
 
-    private void postReload() { loadFirstPage(); }
     private void postSectionsFiltered() {
         List<CallRecord> src = all;
         if (!query.isEmpty()) {
@@ -121,28 +120,31 @@ public final class MainViewModel extends AndroidViewModel {
         }
     }
 
-    private List<FileSection> groupByDay(List<CallRecord> list) {
+    private List<CallRecordSection> groupByDay(List<CallRecord> list) {
         Map<String, List<CallRecord>> buckets = new LinkedHashMap<>();
         for (CallRecord cr : list) {
 
             Calendar c = Calendar.getInstance();
             Calendar now = Calendar.getInstance();
-            Calendar yesterday = (Calendar) now.clone(); yesterday.add(Calendar.DAY_OF_YEAR, -1);
+            Calendar yesterday = (Calendar) now.clone();
+            yesterday.add(Calendar.DAY_OF_YEAR, -1);
             c.setTimeInMillis(cr.startedAtEpochMs);
 
 
             String header;
-            if (now.get(Calendar.YEAR) == c.get(Calendar.YEAR) && now.get(Calendar.DAY_OF_YEAR) == c.get(Calendar.DAY_OF_YEAR))
+            if (now.get(Calendar.YEAR) == c.get(Calendar.YEAR)
+                    && now.get(Calendar.DAY_OF_YEAR) == c.get(Calendar.DAY_OF_YEAR))
                 header = getApplication().getString(R.string.label_today);
-            else if (yesterday.get(Calendar.YEAR) == c.get(Calendar.YEAR) && yesterday.get(Calendar.DAY_OF_YEAR) == c.get(Calendar.DAY_OF_YEAR))
+            else if (yesterday.get(Calendar.YEAR) == c.get(Calendar.YEAR)
+                    && yesterday.get(Calendar.DAY_OF_YEAR) == c.get(Calendar.DAY_OF_YEAR))
                 header = getApplication().getString(R.string.label_yesterday);
             else
-                header = getApplication().getString(R.string.label_date_month_day, c.get(Calendar.DAY_OF_MONTH) + 1, c.get(Calendar.DATE));
+                header = getApplication().getString(R.string.label_date_month_day, c.get(Calendar.MONTH) + 1, c.get(Calendar.DATE));
             buckets.computeIfAbsent(header, k -> new ArrayList<>()).add(cr);
         }
-        List<FileSection> out = new ArrayList<>();
+        List<CallRecordSection> out = new ArrayList<>();
         for (Map.Entry<String, List<CallRecord>> e : buckets.entrySet()) {
-            out.add(new FileSection(e.getKey(), e.getValue()));
+            out.add(new CallRecordSection(e.getKey(), e.getValue()));
         }
         return out;
     }

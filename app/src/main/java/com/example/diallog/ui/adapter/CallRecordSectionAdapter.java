@@ -14,26 +14,26 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.diallog.R;
 import com.example.diallog.data.model.CallRecord;
-import com.example.diallog.data.model.FileSection;
+import com.example.diallog.data.model.CallRecordSection;
 
 import java.util.ArrayList;
 
-public final class FileSectionAdapter extends ListAdapter<FileSection, FileSectionAdapter.VH> {
+public final class CallRecordSectionAdapter extends ListAdapter<CallRecordSection, CallRecordSectionAdapter.VH> {
 
     public interface OnCallClick { void onClick(@NonNull Uri uri); }
     @Nullable private final OnCallClick onCallClick;
 
 
-    public FileSectionAdapter(@Nullable OnCallClick onCallClick) {
+    public CallRecordSectionAdapter(@Nullable OnCallClick onCallClick) {
         super(DIFF);
         this.onCallClick = onCallClick;
     }
 
-    private static final DiffUtil.ItemCallback<FileSection> DIFF = new DiffUtil.ItemCallback<FileSection>() {
-        @Override public boolean areItemsTheSame(@NonNull FileSection a, @NonNull FileSection b) {
+    private static final DiffUtil.ItemCallback<CallRecordSection> DIFF = new DiffUtil.ItemCallback<CallRecordSection>() {
+        @Override public boolean areItemsTheSame(@NonNull CallRecordSection a, @NonNull CallRecordSection b) {
             return a.header.equals(b.header);
         }
-        @Override public boolean areContentsTheSame(@NonNull FileSection a, @NonNull FileSection b) {
+        @Override public boolean areContentsTheSame(@NonNull CallRecordSection a, @NonNull CallRecordSection b) {
             if (!a.header.equals(b.header)) return false;
             if (a.items.size() != b.items.size()) return false;
             if (a.items.isEmpty()) return true;
@@ -47,7 +47,7 @@ public final class FileSectionAdapter extends ListAdapter<FileSection, FileSecti
 
     @NonNull @Override
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_file_section, parent, false);
+        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_call_record_section, parent, false);
         return new VH(v, onCallClick);
     }
 
@@ -60,18 +60,20 @@ public final class FileSectionAdapter extends ListAdapter<FileSection, FileSecti
     static final class VH extends RecyclerView.ViewHolder {
         private final TextView tvHeader;
         private final RecyclerView rvFiles;
-        private final FileAdapter child;
+        private final CallRecordAdapter child;
 
         VH(@NonNull View itemView, @Nullable OnCallClick onCallClick) {
             super(itemView);
             tvHeader = itemView.findViewById(R.id.tv_how_long);
-            rvFiles  = itemView.findViewById(R.id.rv_files);
+            rvFiles = itemView.findViewById(R.id.rv_items);
             rvFiles.setItemAnimator(null);
-            child = new FileAdapter(uri -> { if (onCallClick != null) onCallClick.onClick(uri); });
+            child = new CallRecordAdapter(uri -> {
+                if (onCallClick != null) onCallClick.onClick(uri);
+            });
             rvFiles.setAdapter(child);
         }
 
-        void bind(@NonNull FileSection section) {
+        void bind(@NonNull CallRecordSection section) {
             tvHeader.setText(section.header);
             child.submitList(new ArrayList<>(section.items));
         }
