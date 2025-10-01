@@ -20,8 +20,8 @@ public final class MockCallRepository implements CallRepository {
 
     public MockCallRepository(@NonNull Context app) {
         // 캐시에 샘플 파일 복사 후 그 절대경로를 path로 사용
-        File a = copyRawToCache(app, R.raw.sample1, "sample1.mp3");
-        File b = copyRawToCache(app, R.raw.sample2, "sample2.mp3");
+        File a = copyRawToCache(app, R.raw.sample1, "raw/sample1.mp3");
+        File b = copyRawToCache(app, R.raw.sample2, "raw/sample2.mp3");
         long now = System.currentTimeMillis();
         fake.add(new CallRecord(Uri.fromFile(a), "통화1", 120_000, now));
         fake.add(new CallRecord(Uri.fromFile(b), "통화2",  60_000, now - 3_600_000));

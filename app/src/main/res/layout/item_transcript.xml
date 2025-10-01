@@ -5,12 +5,12 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:paddingBottom="4dp">
+    android:layout_height="wrap_content">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:paddingVertical="2dp">
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cv_text"
@@ -18,31 +18,38 @@
             android:layout_height="wrap_content"
             app:cardBackgroundColor="@color/surface_variant"
             app:cardCornerRadius="12dp"
+            app:cardPreventCornerOverlap="false"
+            app:cardUseCompatPadding="true"
+            app:layout_constraintWidth_max="300dp"
             app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/tv_time"
             app:layout_constraintTop_toTopOf="parent">
 
             <TextView
                 android:id="@+id/tv_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="18sp"
-                android:textColor="@color/on_surface"
                 android:paddingHorizontal="16dp"
                 android:paddingVertical="8dp"
-                tools:text="프로토 타입 통화 대화."/>
+                android:textColor="@color/on_surface"
+                android:textSize="18sp"
+                tools:text="프로토 타입 통화 대화/ ddddddd d ddddd d dd" />
         </com.google.android.material.card.MaterialCardView>
 
         <TextView
             android:id="@+id/tv_time"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="15dp"
-            android:textSize="16sp"
+            android:layout_marginStart="12dp"
+            android:layout_marginBottom="4dp"
+            android:gravity="start"
             android:textColor="@color/subtext_light"
-            app:layout_constraintStart_toEndOf="@id/cv_text"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:textSize="14sp"
+            app:layout_constraintWidth_min="56dp"
             app:layout_constraintBottom_toBottomOf="parent"
-            tools:text="0:21"/>
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/cv_text"
+            tools:text="00:21" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -51,6 +58,7 @@
         android:layout_height="wrap_content"
         android:textColor="@color/chip_text"
         android:textSize="13sp"
+        android:paddingVertical="3dp"
         app:chipBackgroundColor="@color/chip_background"
         app:chipStrokeColor="@color/chip_outline"
         app:chipStrokeWidth="1dp"

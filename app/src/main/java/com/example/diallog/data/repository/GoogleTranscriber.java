@@ -167,7 +167,7 @@ public final class GoogleTranscriber implements Transcriber {
         AudioUriResolver.ResolvedAudio resolved = null;
         try {
             AudioUriResolver resolver = new AudioUriResolver(app);
-            resolved = resolver.resolveWithFallback(input.uri, app.getResources(), R.raw.sample_eng1, "sample_eng1.mp3");
+            resolved = resolver.resolveWithFallback(input.uri, app.getResources(), R.raw.sample_eng1, "raw/sample_eng1.mp3");
 
             int sampleRateHz = GoogleSttAudioHelper.extractSampleRateHz(resolved.file);
             byte[] audioBytes = readFile(resolved.file);

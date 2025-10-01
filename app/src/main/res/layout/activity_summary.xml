@@ -32,11 +32,9 @@
         android:id="@+id/content_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginVertical="35dp"
-        android:layout_marginHorizontal="20dp"
         app:layout_anchor="@+id/content_container"
         app:layout_anchorGravity="center"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        app:layout_behavior="@string/appbar_scrolling_view_behavior" >
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_sections"

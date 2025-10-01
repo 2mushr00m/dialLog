@@ -129,6 +129,7 @@ public final class FileSystemCallRepository implements CallRepository {
                 @Override public void onChange(boolean selfChange) { reload(); }
             };
             cr.registerContentObserver(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, true, mediaObserver);
+            cr.registerContentObserver(MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL), true, mediaObserver);
         } else {
             folderObserver = new FolderObserver(app, treeUri, this::reload);
             folderObserver.start();
@@ -153,52 +154,94 @@ public final class FileSystemCallRepository implements CallRepository {
         onDataChanged.run();
     }
 
-
     private @NonNull List<CallRecord> scanMediaStore() {
         List<CallRecord> out = new ArrayList<>();
+        // Audio와 Files 간 중복 방지를 위한 키(RELATIVE_PATH + DISPLAY_NAME)
+        HashSet<String> seen = new HashSet<>();
 
-        String[] proj = {
+        // 1) Audio 테이블 우선 수집
+        final Uri audioUri = MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL);
+        final String[] projAudio = {
                 MediaStore.Audio.Media._ID,
                 MediaStore.Audio.Media.DISPLAY_NAME,
-                MediaStore.Audio.Media.DURATION,
-                MediaStore.Audio.Media.MIME_TYPE,
                 MediaStore.Audio.Media.RELATIVE_PATH,
+                MediaStore.Audio.Media.DURATION,
                 MediaStore.Audio.Media.DATE_MODIFIED,
                 MediaStore.Audio.Media.DATE_ADDED
         };
-        String sel = MediaStore.Audio.Media.IS_PENDING + "=0";
-        String order = MediaStore.Audio.Media.DATE_MODIFIED + " DESC";
+        final String selCommon = MediaStore.Audio.Media.IS_PENDING + "=0";
+        final String order = MediaStore.Audio.Media.DATE_MODIFIED + " DESC";
 
-        Uri[] volumes = {
-                MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL),
-        };
-
-        for (Uri vol : volumes) {
-            try (Cursor c = cr.query(vol, proj, sel, null, order)) {
-                if (c == null) continue;
-
+        try (Cursor c = cr.query(audioUri, projAudio, selCommon, null, order)) {
+            if (c != null) {
                 int idIdx   = c.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
                 int nameIdx = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME);
+                int relIdx  = c.getColumnIndexOrThrow(MediaStore.Audio.Media.RELATIVE_PATH);
                 int durIdx  = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
                 int modIdx  = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED);
                 int addIdx  = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED);
 
                 while (c.moveToNext()) {
+                    String name = c.getString(nameIdx);
+                    if (!isAudioByName(name)) continue;
+
+                    String rel = c.getString(relIdx);
+                    String key = makeKey(rel, name);
+                    if (!seen.add(key)) continue;
+
                     long id = c.getLong(idIdx);
-                    String fileName = c.getString(nameIdx);
-                    if (!isAudioByName(fileName)) continue;
-
                     long durationMs = Math.max(0, c.getLong(durIdx));
-                    long tsSec = c.getLong(modIdx); if (tsSec == 0) tsSec = c.getLong(addIdx);
-                    long epochMs = tsSec > 0 ? tsSec * 1000L : System.currentTimeMillis();
+                    long epochMs = safeEpochMs(c.getLong(modIdx), c.getLong(addIdx));
 
-                    Uri uri = ContentUris.withAppendedId(vol, id);
-
-                    CallRecord r = new CallRecord(uri, fileName, durationMs, epochMs);
-                    out.add(r);
+                    Uri uri = ContentUris.withAppendedId(audioUri, id);
+                    out.add(new CallRecord(uri, name, durationMs, epochMs));
                 }
-            } catch (Throwable ignore) {}
-        }
+            }
+        } catch (Throwable ignore) {}
+
+        // 2) Files 테이블 폴백(일부 기기에서 m4a가 Audio에 안 잡히는 케이스 보강)
+        final Uri filesUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL);
+        final String[] projFiles = {
+                MediaStore.Files.FileColumns._ID,
+                MediaStore.Files.FileColumns.DISPLAY_NAME,
+                MediaStore.Files.FileColumns.RELATIVE_PATH,
+                MediaStore.MediaColumns.DURATION,
+                MediaStore.Files.FileColumns.DATE_MODIFIED,
+                MediaStore.Files.FileColumns.DATE_ADDED
+        };
+        final String selFiles = MediaStore.Files.FileColumns.IS_PENDING + "=0 AND " +
+                MediaStore.Files.FileColumns.MEDIA_TYPE + "=?";
+        final String[] argsFiles = { String.valueOf(MediaStore.Files.FileColumns.MEDIA_TYPE_AUDIO) };
+
+        try (Cursor c = cr.query(filesUri, projFiles, selFiles, argsFiles, order)) {
+            if (c != null) {
+                int idIdx   = c.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID);
+                int nameIdx = c.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME);
+                int relIdx  = c.getColumnIndexOrThrow(MediaStore.Files.FileColumns.RELATIVE_PATH);
+                int durIdx  = c.getColumnIndexOrThrow(MediaStore.MediaColumns.DURATION);
+                int modIdx  = c.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATE_MODIFIED);
+                int addIdx  = c.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATE_ADDED);
+
+                while (c.moveToNext()) {
+                    String name = c.getString(nameIdx);
+                    if (!isAudioByName(name)) continue;
+
+                    String rel = c.getString(relIdx);
+                    String key = makeKey(rel, name);
+                    if (!seen.add(key)) continue;
+
+                    long id = c.getLong(idIdx);
+                    long durationMs = Math.max(0, c.getLong(durIdx));
+                    long epochMs = safeEpochMs(c.getLong(modIdx), c.getLong(addIdx));
+
+                    Uri uri = ContentUris.withAppendedId(filesUri, id);
+                    if (durationMs <= 0) {
+                        durationMs = probeDuration(uri);
+                    }
+                    out.add(new CallRecord(uri, name, durationMs, epochMs));
+                }
+            }
+        } catch (Throwable ignore) {}
 
         return out;
     }
@@ -225,6 +268,16 @@ public final class FileSystemCallRepository implements CallRepository {
         return out;
     }
 
+    @NonNull
+    private static String makeKey(@Nullable String relPath, @NonNull String fileName) {
+        String rel = relPath != null ? relPath : "";
+        return (rel + "|" + fileName).toLowerCase(Locale.ROOT);
+    }
+
+    private static long safeEpochMs(long dateModifiedSec, long dateAddedSec) {
+        long tsSec = dateModifiedSec > 0 ? dateModifiedSec : dateAddedSec;
+        return tsSec > 0 ? tsSec * 1000L : System.currentTimeMillis();
+    }
 
     private boolean isAudioByName(@Nullable String name) {
         if (name == null) return false;

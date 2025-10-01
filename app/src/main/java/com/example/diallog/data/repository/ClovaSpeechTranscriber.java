@@ -65,7 +65,7 @@ public final class ClovaSpeechTranscriber implements Transcriber {
         try {
             // 1) File Resolved
             AudioUriResolver resolver = new AudioUriResolver(app);
-            resolved = resolver.resolveWithFallback(audioUri, app.getResources(), R.raw.sample1, "sample1.mp3");
+            resolved = resolver.resolveWithFallback(audioUri, app.getResources(), R.raw.sample1, "raw/sample1.mp3");
 
             Log.d(TAG, "파일 해석: path=" + resolved.file
                     + " size=" + resolved.file.length()
