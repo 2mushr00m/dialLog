@@ -55,24 +55,24 @@ public final class SummaryViewModel extends ViewModel {
         error.setValue(null);
 
         running = io.submit(() -> {
+            final int myJob = jobId;
             try {
                 TranscriberResult raw = transcriber.transcribe(audioUri);
 
-                List<Transcript> sorted = raw.segments;
+                List<Transcript> sorted = new ArrayList<>(raw.segments);
                 sorted.sort(Comparator.comparingLong(t -> t.startMs));
 
                 List<TranscriptSection> grouped = groupByConsecutiveSpeaker(sorted);
 
-                // 4) 최신 작업만 반영
-                if (jobCounter.get() == jobId && !Thread.currentThread().isInterrupted()) {
+                if (jobCounter.get() == myJob && !Thread.currentThread().isInterrupted()) {
                     sections.postValue(Collections.unmodifiableList(grouped));
                 }
             } catch (Throwable t) {
-                if (jobCounter.get() == jobId) {
+                if (jobCounter.get() == myJob) {
                     error.postValue(t.getMessage() != null ? t.getMessage() : "Transcribe failed");
                 }
             } finally {
-                if (jobCounter.get() == jobId) loading.postValue(false);
+                if (jobCounter.get() == myJob) loading.postValue(false);
             }
         });
     }

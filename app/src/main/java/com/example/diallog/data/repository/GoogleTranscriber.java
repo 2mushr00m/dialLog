@@ -150,7 +150,7 @@ public final class GoogleTranscriber implements Transcriber {
             }
 
             List<Transcript> segments = mapResponse(response.body());
-            return TranscriberResult.interim(segments, null);
+            return TranscriberResult.failure(segments, null);
         } catch (IOException ioe) {
             throw new RuntimeException("Google STT I/O error: " + ioe.getMessage(), ioe);
         } catch (Exception e) {
@@ -185,7 +185,7 @@ public final class GoogleTranscriber implements Transcriber {
             }
 
             List<Transcript> segments = mapResponse(body);
-            return TranscriberResult.finalResult(segments, null);
+            return TranscriberResult.success(segments, null);
         } catch (IOException ioe) {
             throw new RuntimeException("Google STT I/O error: " + ioe.getMessage(), ioe);
         } catch (InterruptedException ie) {

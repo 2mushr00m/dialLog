@@ -16,7 +16,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public final class AudioSnipper {
-    private static final String TAG = "AudioSnipper";
+    private static final String TAG = "Snip";
     private static final int TARGET_SAMPLE_RATE = 16_000;
     private static final int DEQUEUE_TIMEOUT_US = 10_000;
 
@@ -53,10 +53,10 @@ public final class AudioSnipper {
             AudioUriResolver resolver = new AudioUriResolver(app);
             resolved = resolver.resolveWithFallback(audioUri, resources, fallbackRawId, fallbackName);
             SnippedAudio audio = decodeHead(resolved.file, maxSeconds);
-            Log.i(TAG, "snip.done bytes=" + audio.data.length + " sampleRate=" + audio.sampleRateHz);
+            Log.i(TAG, "스니핑 완료: bytes=" + audio.data.length + " sampleRate=" + audio.sampleRateHz);
             return audio;
         } catch (Exception e) {
-            Log.w(TAG, "snipHead: failed", e);
+            Log.w(TAG, "스니핑 실패: uri=" + audioUri, e);
             return new SnippedAudio(new byte[0], TARGET_SAMPLE_RATE);
         } finally {
             if (resolved != null && resolved.tempCopy) {

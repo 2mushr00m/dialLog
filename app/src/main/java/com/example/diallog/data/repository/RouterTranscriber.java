@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Optional;
 
 public final class RouterTranscriber implements Transcriber {
-    private static final String TAG = "STT Router";
+    private static final String TAG = "STTRouter";
 
     private static final String DEFAULT_LANGUAGE_CODE = "en-US";
     private static final int SNIP_SECONDS = 30;
@@ -54,23 +54,23 @@ public final class RouterTranscriber implements Transcriber {
             try {
                 quickResult = google.transcribeQuick(snippedAudio.data, snippedAudio.sampleRateHz, DEFAULT_LANGUAGE_CODE);
             } catch (RuntimeException quickError) {
-                Log.e(TAG, "[STT 스니퍼 실패]", quickError);
+                Log.e(TAG, "스니퍼 실패: uri=" + audioUri + " durationSec=" + SNIP_SECONDS, quickError);
             }
         } else {
-            Log.i(TAG, "[STT 라우팅 스킵] 이유: 스니퍼=없음");
+            Log.i(TAG, "라우팅 스킵: 이유=스니퍼없음");
         }
         long quickElapsed = SystemClock.elapsedRealtime() - quickStart;
 
         String snippet = quickResult != null ? extractSnippet(quickResult.segments) : "";
         int snippetLen = snippet.length();
-        Log.i(TAG, "quick.done ms=" + quickElapsed + " snippetLen=" + snippetLen);
+        Log.i(TAG, "스니퍼 완료: elapsedMs=" + quickElapsed + " snippetLen=" + snippetLen);
 
         Optional<String> detectedTag = Optional.empty();
         if (snippetLen > 0) {
             detectedTag = detector.detect(snippet);
         }
         String languageTag = detectedTag.orElse(null);
-        Log.i(TAG, "mlkit.detect result=" + (languageTag != null ? languageTag : "unknown")
+        Log.i(TAG, "언어 감지: tag=" + (languageTag != null ? languageTag : "unknown")
                 + " snippetLen=" + snippetLen);
 
         String routePrefix = quickResult != null ? "quick" : "quick_fail";
@@ -83,7 +83,7 @@ public final class RouterTranscriber implements Transcriber {
 
         String clovaLanguage = LangMap.toClovaCode(languageTag);
         if (clovaLanguage != null) {
-            Log.i(TAG, "route.decision provider=clova lang=" + clovaLanguage);
+            Log.i(TAG, "라우팅 결정: provider=clova lang=" + clovaLanguage);
             try {
                 TranscriberResult clovaResult = clova.transcribe(audioUri);
                 finalSegments = copySegments(clovaResult.segments);
@@ -92,14 +92,14 @@ public final class RouterTranscriber implements Transcriber {
                 finalResult = buildFinal(finalSegments, provider, route, snippetLen, languageTag, clovaLanguage, routeStart);
                 return finalResult;
             } catch (RuntimeException clovaError) {
-                Log.e(TAG, "route.clova.failed fallback=google", clovaError);
+                Log.e(TAG, "클로바 실패: fallback=google uri=" + audioUri, clovaError);
                 provider = "google";
                 route = routePrefix + "->clova_fail->google";
                 finalLanguage = LangMap.toGoogleCode(languageTag);
             }
         }
 
-        Log.i(TAG, "route.decision provider=google lang=" + finalLanguage);
+        Log.i(TAG, "라우팅 결정: provider=google lang=" + finalLanguage);
         TranscriberResult googleResult = google.transcribe(audioUri, finalLanguage, GoogleTranscriber.Mode.FULL);
         finalSegments = copySegments(googleResult.segments);
         finalResult = buildFinal(finalSegments, provider, route, snippetLen, languageTag, finalLanguage, routeStart);
@@ -145,7 +145,8 @@ public final class RouterTranscriber implements Transcriber {
                 detectedTag,
                 finalLanguageCode
         );
-        Log.i(TAG, "final.done provider=" + provider + " totalMs=" + (SystemClock.elapsedRealtime() - routeStart));
+        Log.i(TAG, "최종 완료: provider=" + provider + " route=" + route
+                + " totalMs=" + (SystemClock.elapsedRealtime() - routeStart));
         return new TranscriberResult(segments, metadata, true);
     }
 }

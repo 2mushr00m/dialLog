@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 
 public final class GoogleOauth implements AuthTokenProvider {
-    private static final String TAG = "GoogleOauth";
+    private static final String TAG = "OAuth";
     private static final String SCOPE = "https://www.googleapis.com/auth/cloud-platform";
     private static final String DEFAULT_TOKEN_URL = "https://oauth2.googleapis.com/token";
     private static final int TOKEN_TIMEOUT_MS = 30_000;
@@ -55,7 +55,7 @@ public final class GoogleOauth implements AuthTokenProvider {
         }
         this.tokenUrl = resolvedTokenUrl;
         this.clock = clock != null ? clock : System::currentTimeMillis;
-        Log.i(TAG, "loadFirstPage: tokenUrl=" + this.tokenUrl);
+        Log.i(TAG, "초기화: tokenUrl=" + this.tokenUrl);
     }
 
     private static final class ServiceAccount {
@@ -97,7 +97,7 @@ public final class GoogleOauth implements AuthTokenProvider {
 
     @Override
     public synchronized void invalidate() {
-        Log.i(TAG, "invalidate: clearing cached token");
+        Log.i(TAG, "캐시 무효화: 상태=cleared");
         cachedToken = null;
         expiryEpochMs = 0L;
     }
@@ -106,11 +106,11 @@ public final class GoogleOauth implements AuthTokenProvider {
     public synchronized String getToken() throws Exception {
         long now = clock.getAsLong();
         if (cachedToken != null && now < expiryEpochMs - 60_000L) {
-            Log.d(TAG, "getToken: returning cached token expiresInMs=" + (expiryEpochMs - now));
+            Log.d(TAG, "토큰 재사용: expiresInMs=" + (expiryEpochMs - now));
             return cachedToken;
         }
 
-        Log.i(TAG, "getToken: refreshing token (cached=" + (cachedToken != null) + ")");
+        Log.i(TAG, "토큰 갱신: cached=" + (cachedToken != null));
         long issuedAt = TimeUnit.MILLISECONDS.toSeconds(now);
         long expiresAt = issuedAt + 3600L;
 
@@ -146,7 +146,7 @@ public final class GoogleOauth implements AuthTokenProvider {
             }
 
             int code = connection.getResponseCode();
-            Log.i(TAG, "getToken: response code=" + code);
+            Log.i(TAG, "토큰 응답: httpCode=" + code);
             InputStream responseStream = code >= 200 && code < 300
                     ? connection.getInputStream()
                     : connection.getErrorStream();
@@ -160,7 +160,7 @@ public final class GoogleOauth implements AuthTokenProvider {
             }
 
             if (code < 200 || code >= 300) {
-                Log.e(TAG, "getToken: request failed code=" + code);
+                Log.e(TAG, "토큰 요청 실패: httpCode=" + code);
                 throw new IOException("Token exchange failed: HTTP " + code
                         + (responseBody.isEmpty() ? "" : " - " + responseBody));
             }
@@ -172,16 +172,16 @@ public final class GoogleOauth implements AuthTokenProvider {
                 cachedToken = token;
                 long refreshedAt = clock.getAsLong();
                 expiryEpochMs = refreshedAt + expiresIn * 1000L;
-                Log.i(TAG, "getToken: token refreshed expiresInSec=" + expiresIn
+                Log.i(TAG, "토큰 발급: expiresInSec=" + expiresIn
                         + " tokenLength=" + (token != null ? token.length() : 0));
                 return token;
             } catch (JSONException e) {
-                Log.e(TAG, "getToken: failed to parse response", e);
+                Log.e(TAG, "응답 파싱 실패: 원인=" + e.getMessage(), e);
                 throw new IOException("Failed to parse OAuth response: " + e.getMessage(), e);
             }
         } finally {
             connection.disconnect();
-            Log.d(TAG, "getToken: connection closed");
+            Log.d(TAG, "연결 종료: endpoint=token");
         }
     }
 

@@ -24,7 +24,7 @@ public final class CachedTranscriber implements Transcriber {
     public @NonNull TranscriberResult transcribe(@NonNull Uri audioUri) {
         List<Transcript> hit = cache.get(audioUri);
         if (!hit.isEmpty()) {
-            return TranscriberResult.finalResult(hit, null);
+            return TranscriberResult.success(hit, null);
         }
         TranscriberResult fresh = delegate.transcribe(audioUri);
         if (fresh != null && fresh.isFinal && fresh.segments != null && !fresh.segments.isEmpty()) {

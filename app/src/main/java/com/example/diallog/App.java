@@ -21,7 +21,7 @@ public final class App extends Application {
             try {
                 TranscriberProvider.init(getApplicationContext());
             } catch (Throwable t) {
-                Log.w("App", "Transcriber 초기화 실패", t);
+                Log.w("App", "초기화 실패: 대상=Transcriber", t);
             }
         });
     }

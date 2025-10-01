@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.util.Locale;
 
 final class GoogleSttAudioHelper {
-    private static final String TAG = "GoogleSttAudioCfg";
+    private static final String TAG = "GSttCfg";
     private static final int FALLBACK_SAMPLE_RATE_HZ = 16_000;
 
     private GoogleSttAudioHelper() {
@@ -26,7 +26,7 @@ final class GoogleSttAudioHelper {
         EncodingAttributes attrs = inferEncodingAttributes(mimeType);
         if (attrs == null) {
             if (!TextUtils.isEmpty(mimeType)) {
-                Log.d(TAG, "applyEncoding: unsupported mimeType=" + mimeType);
+                Log.d(TAG, "인코딩 생략: mimeType=" + mimeType);
             }
             return;
         }
@@ -35,7 +35,7 @@ final class GoogleSttAudioHelper {
         if (attrs.requiresSampleRate) {
             int effectiveRate = sampleRateHz > 0 ? sampleRateHz : FALLBACK_SAMPLE_RATE_HZ;
             if (sampleRateHz <= 0) {
-                Log.d(TAG, "applyEncoding: using fallback sample rate for mimeType=" + mimeType);
+                Log.d(TAG, "샘플레이트 대체: mimeType=" + mimeType + " sampleRate=" + effectiveRate);
             }
             config.sampleRateHertz = effectiveRate;
         }
@@ -50,7 +50,7 @@ final class GoogleSttAudioHelper {
                 return Integer.parseInt(sampleRateStr);
             }
         } catch (Exception e) {
-            Log.w(TAG, "extractSampleRateHz: failed to read metadata", e);
+            Log.w(TAG, "메타데이터 읽기 실패: path=" + file.getAbsolutePath(), e);
         } finally {
             try {
                 retriever.release();

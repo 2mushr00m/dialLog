@@ -48,11 +48,11 @@ public final class FileTranscriptCache implements TranscriptCache {
         File f = fileFor(uri);
         if (!f.exists()) {
             misses.incrementAndGet();
-            Log.i(TAG,"miss "+f.getName());
+            Log.i(TAG, "캐시 미스: file=" + f.getName());
             return Collections.emptyList();
         }
         hits.incrementAndGet();
-        Log.i(TAG,"hit "+f.getName());
+        Log.i(TAG, "캐시 히트: file=" + f.getName());
         try (BufferedReader br = new BufferedReader(new FileReader(f))) {
             List<Transcript> list = gson.fromJson(br, listType);
             // LRU 갱신: 마지막 접근 시각을 mtime으로 표시
@@ -68,7 +68,7 @@ public final class FileTranscriptCache implements TranscriptCache {
             bw.write(gson.toJson(segs, listType));
         } catch (Exception ignore) {}
         puts.incrementAndGet();
-        Log.i(TAG,"put "+fileFor(uri).getName()+" size="+fileFor(uri).length());
+        Log.i(TAG, "캐시 저장: file=" + f.getName() + " size=" + f.length());
         evictIfNeeded();
     }
 

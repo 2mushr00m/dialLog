@@ -22,7 +22,7 @@
     <string name="label_hms_no_stt">%d시간 %d분 %d초 · STT 미전환</string>
     <string name="label_ms_no_stt">%d분 %d초 · STT 미전환</string>
     <string name="label_s_no_stt">%d초 · STT 미전환</string>
-    <string name="label_timestamp_time">%d:%d</string>
+    <string name="label_timestamp_time">%02d:%02d</string>
     <string name="label_view_summary">요약 보기</string>
 
     <string name="btn_add_file">파일 추가</string>

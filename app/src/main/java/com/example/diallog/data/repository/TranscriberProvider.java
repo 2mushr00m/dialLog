@@ -16,7 +16,7 @@ import com.example.diallog.data.repository.cache.TranscriptCache;
 
 
 public final class TranscriberProvider {
-    private static final String TAG = "STT Provider";
+    private static final String TAG = "STTProv";
     private static volatile boolean initialized = false;
     private static volatile @Nullable Transcriber INSTANCE;
     private static Transcriber mock;
@@ -37,7 +37,7 @@ public final class TranscriberProvider {
             oauth = new GoogleOauth(app, R.raw.service_account);
             google = new GoogleTranscriber(app, ApiClient.google(), oauth, clova);
         } catch (Exception e) {
-            Log.w(TAG, "Google 생성 실패: CLOVA_ONLY로 엔진 고정", e);
+            Log.w(TAG, "Google 생성 실패: mode=ROUTE_OFF fixed=CLOVA_ONLY", e);
             google = null;
             AppConfig.get().setSttRouteMode(AppConfig.SttRouteMode.ROUTE_OFF);
             AppConfig.get().setSttFixedEngine(AppConfig.SttFixedEngine.CLOVA_ONLY);
@@ -46,7 +46,7 @@ public final class TranscriberProvider {
         try {
             detector = new MlKitLanguageDetector();
         } catch (Throwable t) {
-            Log.w(TAG, "Ml Kit 생성 실패: ko-KR로 언어 고정", t);
+            Log.w(TAG, "ML Kit 생성 실패: fallback=ko-KR", t);
             detector = new NoopLanguageDetector();
         }
 
@@ -68,16 +68,16 @@ public final class TranscriberProvider {
         switch (AppConfig.get().sttRouteMode()) {
             case ROUTE_ON:
                 if (google != null) {
-                    Log.i(TAG, "STT 라우팅 모드: ROUTE_ON");
+                    Log.i(TAG, "STT 라우팅 모드: mode=ROUTE_ON");
                     base = new RouterTranscriber(clova, google, detector);
                     break;
                 } else {
                     base = clova;
-                    Log.w(TAG, "Google 사용 불가: 고정 엔진=CLOVA");
+                    Log.w(TAG, "Google 사용 불가: fixed=CLOVA_ONLY");
                 }
             case ROUTE_OFF:
             default:
-                Log.i(TAG, "STT 라우팅 모드: ROUTE_OFF 고정 엔진=" + AppConfig.get().sttFixedEngine());
+                Log.i(TAG, "STT 라우팅 모드: mode=ROUTE_OFF fixed=" + AppConfig.get().sttFixedEngine());
                 base = selectFixedEngine(clova, google);
         }
         INSTANCE = new CachedTranscriber(base, cache);

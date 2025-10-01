@@ -45,20 +45,20 @@ public final class ClovaSpeechTranscriber implements Transcriber {
         long t0 = System.nanoTime();
         try {
             List<Transcript> segments = transcribeInternal(audioUri);
-            return TranscriberResult.finalResult(segments, null);
+            return TranscriberResult.success(segments, null);
         } catch (Exception e) {
-            Log.e(TAG, "STT 실패: " + audioUri, e);
+            Log.e(TAG, "STT 실패: uri=" + audioUri, e);
             if (fallback != null && fallback != this)
                 return fallback.transcribe(audioUri);
             throw e;
         } finally {
-            Log.i(TAG, "소요시간=" + (System.nanoTime()-t0)/1_000_000 + "ms");
+            Log.i(TAG, "처리 완료: 소요시간Ms=" + (System.nanoTime() - t0) / 1_000_000);
         }
     }
 
     @NonNull
     private List<Transcript> transcribeInternal(@NonNull Uri audioUri) {
-        Log.i(TAG, "STT 진행 시작: uri=" + audioUri);
+        Log.i(TAG, "STT 시작: uri=" + audioUri);
         List<Transcript> ret = new ArrayList<>();
         AudioUriResolver.ResolvedAudio resolved = null;
 
@@ -67,9 +67,9 @@ public final class ClovaSpeechTranscriber implements Transcriber {
             AudioUriResolver resolver = new AudioUriResolver(app);
             resolved = resolver.resolveWithFallback(audioUri, app.getResources(), R.raw.sample1, "sample1.mp3");
 
-            Log.d(TAG, "파일 해석: file=" + resolved.file
+            Log.d(TAG, "파일 해석: path=" + resolved.file
                     + " size=" + resolved.file.length()
-                    + " tempCopy=" + resolved.tempCopy);
+                    + " temp=" + resolved.tempCopy);
 
 
             // 2) multipart 파트 구성
@@ -89,39 +89,39 @@ public final class ClovaSpeechTranscriber implements Transcriber {
 
             // 3) 호출
             ClovaSpeechApi svc = clovaApi.create(ClovaSpeechApi.class);
-            Log.i(TAG, "호출: language=" + DEFAULT_LANGUAGE_CODE);
+            Log.i(TAG, "호출 준비: language=" + DEFAULT_LANGUAGE_CODE);
             Response<ClovaSpeechResponse> resp = svc.recognize(
                     BuildConfig.NAVER_CLOVA_STT_API_KEY, media, params, type
             ).execute();
-            Log.i(TAG, "응답: response code=" + resp.code());
+            Log.i(TAG, "응답 수신: httpCode=" + resp.code());
 
             if (!resp.isSuccessful() || resp.body() == null)
-                Log.e(TAG, "응답 실패: HTTP " + resp.code());
+                Log.e(TAG, "응답 실패: httpCode=" + resp.code());
 
             // 4) 매핑
             ClovaSpeechResponse b = resp.body();
             if (b != null && b.segments != null && !b.segments.isEmpty()) {
-                Log.i(TAG, "매핑: sections " + b.segments.size() + "개");
+                Log.i(TAG, "결과 매핑: segments=" + b.segments.size());
                 for (ClovaSpeechResponse.Seg s : b.segments) {
                     String speakerLabel = (s.speaker != null) ? s.speaker.label : null;
                     ret.add(new Transcript(s.text, s.startMs, s.endMs, s.confidence, speakerLabel));
                 }
             } else if (b != null && b.text != null && !b.text.isEmpty()) {
-                Log.i(TAG, "싱글 텍스트: 전체 텍스트 길이=" + b.text.length());
+                Log.i(TAG, "싱글 텍스트: length=" + b.text.length());
                 ret.add(new Transcript(b.text, 0, 0, 1.0F, null));
             }
 
             return ret;
         } catch (IOException io) {
-            Log.e(TAG, "네트워크 오류: " + io.getMessage());
+            Log.e(TAG, "네트워크 오류: uri=" + audioUri + " 원인=" + io.getMessage(), io);
         } catch (JsonParseException jp) {
-            Log.w(TAG, "JSON 파싱 오류", jp);
+            Log.w(TAG, "JSON 파싱 오류: uri=" + audioUri + " 원인=" + jp.getMessage(), jp);
             throw jp;
         } catch (Exception e) {
-            Log.w(TAG, "알 수 없는 오류", e);
+            Log.w(TAG, "알 수 없는 오류: uri=" + audioUri + " 원인=" + e.getMessage(), e);
         } finally {
             if (resolved != null && resolved.tempCopy) {
-                Log.d(TAG, "temp 제거: file=" + resolved.file);
+                Log.d(TAG, "임시 파일 제거: path=" + resolved.file);
                 //noinspection ResultOfMethodCallIgnored
                 resolved.file.delete();
             }

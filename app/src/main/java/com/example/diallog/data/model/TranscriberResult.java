@@ -3,8 +3,6 @@ package com.example.diallog.data.model;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -22,13 +20,13 @@ public final class TranscriberResult {
     }
 
     @NonNull
-    public static TranscriberResult finalResult(@NonNull List<Transcript> segments,
-                                                @Nullable Metadata metadata) {
+    public static TranscriberResult success(@NonNull List<Transcript> segments,
+                                            @Nullable Metadata metadata) {
         return new TranscriberResult(segments, metadata, true);
     }
 
     @NonNull
-    public static TranscriberResult interim(@NonNull List<Transcript> segments,
+    public static TranscriberResult failure(@NonNull List<Transcript> segments,
                                             @Nullable Metadata metadata) {
         return new TranscriberResult(segments, metadata, false);
     }

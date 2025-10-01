@@ -42,8 +42,8 @@
             android:id="@+id/rv_sections"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            tools:listitem="@layout/item_transcript_section"
-            tools:itemCount="4"/>
+            tools:itemCount="4"
+            tools:listitem="@layout/item_transcript_section" />
 
     </FrameLayout>
 
