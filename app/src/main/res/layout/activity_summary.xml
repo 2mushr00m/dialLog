@@ -45,12 +45,92 @@
 
     </FrameLayout>
 
-    <include
-        android:id="@+id/player_panel"
-        layout="@layout/view_player_panel"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"/>
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="16dp"
+        android:background="@color/surface"
+        android:elevation="4dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/label_elapsed"
+                android:labelFor="@id/slider"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/label_timestamp_time"/>
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/slider"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:contentDescription="@string/cd_media_position"
+                app:trackColorActive="@color/brand_primary"
+                app:trackColorInactive="@color/subtext_light"
+                app:trackHeight="6dp"
+                app:thumbColor="@color/brand_primary"
+                app:thumbRadius="6dp"
+                android:valueFrom="0" android:valueTo="81"
+                android:value="20" android:stepSize="1"/>
+
+            <TextView
+                android:id="@+id/label_tv_duration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/label_timestamp_time"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingTop="8dp">
+
+            <ImageButton
+                android:id="@+id/btn_rew"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/btn_rewind_10s"
+                android:scaleX="1.5"
+                android:scaleY="1.5"
+                android:src="@drawable/ic_replay_10"
+                app:tint="@color/subtext"/>
+
+            <ImageButton
+                android:id="@+id/btnPlay"
+                android:layout_width="86dp"
+                android:layout_height="64dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/btn_play_pause"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_play"
+                app:tint="@color/brand_primary"/>
+
+            <ImageButton
+                android:id="@+id/btnFwd"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/btn_forward_10s"
+                android:scaleX="1.5"
+                android:scaleY="1.5"
+                android:src="@drawable/ic_forward_10"
+                app:tint="@color/subtext"/>
+        </LinearLayout>
+    </LinearLayout>
 
 
 
