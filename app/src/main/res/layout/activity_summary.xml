@@ -28,110 +28,119 @@
             tools:title="010-1234-1234"/>
     </com.google.android.material.appbar.AppBarLayout>
 
-    <FrameLayout
-        android:id="@+id/content_container"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:layout_anchor="@+id/content_container"
-        app:layout_anchorGravity="center"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior" >
+        android:layout_height="match_parent"
+        android:paddingTop="70dp">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_sections"
+        <FrameLayout
+            android:id="@+id/content_container"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            tools:itemCount="4"
-            tools:listitem="@layout/item_transcript_section" />
+            android:layout_height="0dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/panel_layout"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior" >
 
-    </FrameLayout>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_sections"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                app:layout_behavior="@string/appbar_scrolling_view_behavior"
+                app:layout_dodgeInsetEdges="bottom"
+                tools:itemCount="3"
+                tools:listitem="@layout/item_transcript_section" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:orientation="vertical"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="8dp"
-        android:paddingBottom="16dp"
-        android:background="@color/surface"
-        android:elevation="4dp">
+        </FrameLayout>
 
         <LinearLayout
+            android:id="@+id/panel_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="16dp"
+            android:background="@color/surface"
+            android:elevation="4dp">
 
-            <TextView
-                android:id="@+id/label_elapsed"
-                android:labelFor="@id/slider"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/label_timestamp_time"/>
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
-            <com.google.android.material.slider.Slider
-                android:id="@+id/slider"
-                android:layout_width="0dp"
+                <TextView
+                    android:id="@+id/label_elapsed"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_timestamp_time"
+                    android:textSize="14sp"
+                    android:textColor="@color/subtext_light"/>
+
+                <ProgressBar
+                    android:id="@+id/slider"
+                    style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginHorizontal="10dp"
+                    android:progressTint="@color/brand_primary_container"
+                    android:progressBackgroundTint="@color/subtext_light"
+                    tools:progress="50"/>
+
+                <TextView
+                    android:id="@+id/label_tv_duration"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_timestamp_time"
+                    android:textSize="14sp"
+                    android:textColor="@color/subtext_light"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:contentDescription="@string/cd_media_position"
-                app:trackColorActive="@color/brand_primary"
-                app:trackColorInactive="@color/subtext_light"
-                app:trackHeight="6dp"
-                app:thumbColor="@color/brand_primary"
-                app:thumbRadius="6dp"
-                android:valueFrom="0" android:valueTo="81"
-                android:value="20" android:stepSize="1"/>
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:paddingTop="8dp">
 
-            <TextView
-                android:id="@+id/label_tv_duration"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/label_timestamp_time"/>
+                <ImageButton
+                    android:id="@+id/btn_rew"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:scaleType="centerCrop"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/btn_rewind_10s"
+                    android:src="@drawable/ic_replay_10"
+                    app:tint="@color/subtext"/>
 
+                <ImageButton
+                    android:id="@+id/btnPlay"
+                    android:layout_marginHorizontal="16dp"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:scaleType="centerCrop"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/btn_play_pause"
+                    android:src="@drawable/ic_play"
+                    app:tint="@color/brand_primary"/>
+
+                <ImageButton
+                    android:id="@+id/btn_fwd"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:scaleType="centerCrop"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/btn_forward_10s"
+                    android:src="@drawable/ic_forward_10"
+                    app:tint="@color/subtext"/>
+            </LinearLayout>
         </LinearLayout>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:paddingTop="8dp">
-
-            <ImageButton
-                android:id="@+id/btn_rew"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/btn_rewind_10s"
-                android:scaleX="1.5"
-                android:scaleY="1.5"
-                android:src="@drawable/ic_replay_10"
-                app:tint="@color/subtext"/>
-
-            <ImageButton
-                android:id="@+id/btnPlay"
-                android:layout_width="86dp"
-                android:layout_height="64dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/btn_play_pause"
-                android:scaleType="centerCrop"
-                android:src="@drawable/ic_play"
-                app:tint="@color/brand_primary"/>
-
-            <ImageButton
-                android:id="@+id/btnFwd"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/btn_forward_10s"
-                android:scaleX="1.5"
-                android:scaleY="1.5"
-                android:src="@drawable/ic_forward_10"
-                app:tint="@color/subtext"/>
-        </LinearLayout>
-    </LinearLayout>
-
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

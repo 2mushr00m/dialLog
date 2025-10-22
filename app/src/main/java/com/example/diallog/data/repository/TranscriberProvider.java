@@ -10,6 +10,7 @@ import com.example.diallog.R;
 import com.example.diallog.auth.GoogleOauth;
 import com.example.diallog.config.AppConfig;
 import com.example.diallog.data.network.ApiClient;
+import com.example.diallog.data.network.OpenAISummaryGenerator;
 import com.example.diallog.data.repository.cache.CachedTranscriber;
 import com.example.diallog.data.repository.cache.FileTranscriptCache;
 import com.example.diallog.data.repository.cache.TranscriptCache;
@@ -31,6 +32,7 @@ public final class TranscriberProvider {
         Context app = ctx.getApplicationContext();
 
         cache = new FileTranscriptCache(app, 256);
+
         mock = new MockTranscriber();
         clova = new ClovaSpeechTranscriber(app, ApiClient.clova(), mock);
         try {
@@ -80,7 +82,7 @@ public final class TranscriberProvider {
                 Log.i(TAG, "STT 라우팅 모드: mode=ROUTE_OFF fixed=" + AppConfig.get().sttFixedEngine());
                 base = selectFixedEngine(clova, google);
         }
-        INSTANCE = new CachedTranscriber(base, cache);
+        INSTANCE = new CachedTranscriber(base, cache, new OpenAISummaryGenerator());
         return INSTANCE;
     }
     private static Transcriber selectFixedEngine(Transcriber clova, GoogleTranscriber google) {

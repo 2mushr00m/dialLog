@@ -190,11 +190,13 @@ public final class FileSystemCallRepository implements CallRepository {
                     if (!seen.add(key)) continue;
 
                     long id = c.getLong(idIdx);
-                    long durationMs = Math.max(0, c.getLong(durIdx));
-                    long epochMs = safeEpochMs(c.getLong(modIdx), c.getLong(addIdx));
 
                     Uri uri = ContentUris.withAppendedId(audioUri, id);
-                    out.add(new CallRecord(uri, name, durationMs, epochMs));
+                    CallRecord cr = new CallRecord(uri);
+                    cr.durationMs = Math.max(0, c.getLong(durIdx));
+                    cr.fileName = name;
+                    cr.startedAtEpochMs = safeEpochMs(c.getLong(modIdx), c.getLong(addIdx));
+                    out.add(cr);
                 }
             }
         } catch (Throwable ignore) {}
@@ -238,7 +240,11 @@ public final class FileSystemCallRepository implements CallRepository {
                     if (durationMs <= 0) {
                         durationMs = probeDuration(uri);
                     }
-                    out.add(new CallRecord(uri, name, durationMs, epochMs));
+                    CallRecord cr = new CallRecord(uri);
+                    cr.fileName = name;
+                    cr.durationMs = durationMs;
+                    cr.startedAtEpochMs = epochMs;
+                    out.add(cr);
                 }
             }
         } catch (Throwable ignore) {}
@@ -260,8 +266,11 @@ public final class FileSystemCallRepository implements CallRepository {
                 if (f.isDirectory()) {
                     dq.add(f);
                 } else if (isAudioByName(f.getName())) {
-                    CallRecord r = new CallRecord(f.getUri(), f.getName(), probeDuration(f.getUri()), f.lastModified());
-                    if (r != null) out.add(r);
+                    CallRecord cr = new CallRecord(f.getUri());
+                    cr.fileName = f.getName();
+                    cr.durationMs = probeDuration(f.getUri());
+                    cr.startedAtEpochMs = f.lastModified();
+                    if (cr != null) out.add(cr);
                 }
             }
         }

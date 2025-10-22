@@ -387,7 +387,7 @@ public final class GoogleTranscriber implements Transcriber {
                     endMs = startMs;
                 }
 
-                segments.add(new Transcript(transcript, startMs, endMs, 1.0F, null));
+                segments.add(new Transcript(transcript, startMs, endMs, 1D, null));
                 if (endMs > lastEndMs) {
                     lastEndMs = endMs;
                 }

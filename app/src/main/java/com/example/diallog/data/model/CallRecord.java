@@ -7,17 +7,15 @@ import androidx.annotation.Nullable;
 
 public final class CallRecord {
     public final @NonNull Uri uri;
-    public final String fileName;
-    public final long durationMs;
-    public final long startedAtEpochMs;
-    public boolean inCallHistory;
+    public String fileName;
+    public long durationMs;
+    public long startedAtEpochMs;
     public String summary;
+    public boolean hasCache;
+    public boolean inCallHistory;
 
-    public CallRecord(@NonNull Uri uri, String fileName, long durationMs, long startedAtEpochMs) {
+    public CallRecord(@NonNull Uri uri) {
         this.uri = uri;
-        this.fileName = fileName;
-        this.durationMs = durationMs;
-        this.startedAtEpochMs = startedAtEpochMs;
     }
 
 

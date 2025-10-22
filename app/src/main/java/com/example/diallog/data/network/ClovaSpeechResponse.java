@@ -15,7 +15,7 @@ public class ClovaSpeechResponse {
         public long startMs;
         @SerializedName(value = "endMs", alternate = {"end"})
         public long endMs;
-        public Float confidence;
+        public Double confidence;
         public Speaker speaker;
     }
 

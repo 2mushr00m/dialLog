@@ -108,7 +108,7 @@ public final class ClovaSpeechTranscriber implements Transcriber {
                 }
             } else if (b != null && b.text != null && !b.text.isEmpty()) {
                 Log.i(TAG, "싱글 텍스트: length=" + b.text.length());
-                ret.add(new Transcript(b.text, 0, 0, 1.0F, null));
+                ret.add(new Transcript(b.text, 0, 0, 1D, null));
             }
 
             return ret;

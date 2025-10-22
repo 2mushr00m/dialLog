@@ -45,6 +45,16 @@ android {
             "GOOGLE_STT_BASE",
             "\"${localProps.getProperty("GOOGLE_STT_BASE", "")}\""
         )
+        buildConfigField(
+            "String",
+            "CHAT_GPT_API_KEY",
+            "\"${localProps.getProperty("CHAT_GPT_API_KEY", "")}\""
+        )
+        buildConfigField(
+            "String",
+            "CHAT_GPT_BASE",
+            "\"${localProps.getProperty("CHAT_GPT_BASE", "")}\""
+        )
     }
 
     buildTypes {

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.chip.Chip xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/chip"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:textColor="@color/chip_text"
+    android:textSize="13sp"
+    android:paddingVertical="3dp"
+    app:chipBackgroundColor="@color/chip_background"
+    app:chipStrokeColor="@color/chip_outline"
+    app:chipStrokeWidth="1dp"
+    android:clickable="true"
+    tools:text="@string/chip_add_event" />

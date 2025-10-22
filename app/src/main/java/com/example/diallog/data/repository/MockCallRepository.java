@@ -23,8 +23,18 @@ public final class MockCallRepository implements CallRepository {
         File a = copyRawToCache(app, R.raw.sample1, "raw/sample1.mp3");
         File b = copyRawToCache(app, R.raw.sample2, "raw/sample2.mp3");
         long now = System.currentTimeMillis();
-        fake.add(new CallRecord(Uri.fromFile(a), "통화1", 120_000, now));
-        fake.add(new CallRecord(Uri.fromFile(b), "통화2",  60_000, now - 3_600_000));
+
+        CallRecord cr = new CallRecord(Uri.fromFile(a));
+        cr.fileName = "통화1";
+        cr.durationMs = 120_000;
+        cr.startedAtEpochMs = now;
+        fake.add(cr);
+
+        cr = new CallRecord(Uri.fromFile(a));
+        cr.fileName = "통화2";
+        cr.durationMs = 60_000;
+        cr.startedAtEpochMs = now - 3_600_000;
+        fake.add(cr);
     }
 
     @Override

@@ -8,8 +8,12 @@ import android.provider.MediaStore;
 import androidx.annotation.NonNull;
 
 public class MediaMeta {
-    final long size; final long lastModified; final long durationMs;
-    MediaMeta(long size, long lastModified, long durationMs){ this.size=size; this.lastModified=lastModified; this.durationMs=durationMs; }
+    final long size;
+    final long lastModified;
+    final long durationMs;
+    MediaMeta(long size, long lastModified, long durationMs){
+        this.size=size; this.lastModified=lastModified; this.durationMs=durationMs;
+    }
 
     static MediaMeta query(@NonNull Context ctx, @NonNull Uri uri) {
         String[] proj = { MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED, MediaStore.Audio.Media.DURATION };
@@ -23,6 +27,9 @@ public class MediaMeta {
         } catch (Exception ignore) {}
         return new MediaMeta(0,0,0);
     }
-    private static long getLong(Cursor c, String col){ int i=c.getColumnIndex(col); return i>=0?c.getLong(i):0; }
+    private static long getLong(Cursor c, String col){
+        int i=c.getColumnIndex(col);
+        return i>=0?c.getLong(i):0;
+    }
 
 }

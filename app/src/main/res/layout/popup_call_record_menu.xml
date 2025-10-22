@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_margin="4dp"
+    android:backgroundTint="@color/surface"
+    android:elevation="6dp"
+    app:cardCornerRadius="20dp"
+    app:cardUseCompatPadding="true">
+
+    <LinearLayout
+        android:layout_width="230dp" android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingVertical="6dp" android:paddingHorizontal="8dp">
+
+        <LinearLayout android:id="@+id/row_bookmark" android:layout_width="match_parent"
+            android:layout_height="40dp" android:gravity="center_vertical"
+            android:paddingHorizontal="8dp" android:background="?attr/selectableItemBackgroundBorderless">
+            <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                android:src="@drawable/ic_bookmark" app:tint="@color/on_surface"/>
+            <TextView android:id="@+id/tv_bookmark" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:layout_marginStart="12dp"
+                android:textSize="16sp" android:textColor="@color/on_surface"
+                tools:text="북마크 추가"/>
+        </LinearLayout>
+
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="@color/click_divider" android:alpha="0.25"/>
+
+        <LinearLayout android:id="@+id/row_rename" android:layout_width="match_parent"
+            android:layout_height="40dp" android:gravity="center_vertical"
+            android:paddingHorizontal="8dp" android:background="?attr/selectableItemBackgroundBorderless">
+            <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                android:src="@drawable/ic_edit" app:tint="@color/on_surface" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginStart="12dp" android:textSize="16sp"
+                android:textColor="@color/on_surface"
+                android:text="파일명 편집"/>
+        </LinearLayout>
+
+        <View android:id="@+id/div_cache" android:layout_width="match_parent"
+            android:layout_height="1dp" android:background="@color/click_divider" android:alpha="0.25"/>
+
+        <LinearLayout android:id="@+id/row_cache" android:layout_width="match_parent"
+            android:layout_height="40dp" android:gravity="center_vertical"
+            android:paddingHorizontal="8dp" android:background="?attr/selectableItemBackgroundBorderless">
+            <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                android:src="@drawable/ic_delete_cache" app:tint="@color/on_surface"/>
+            <TextView android:id="@+id/tv_cache" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:layout_marginStart="12dp"
+                android:textSize="16sp" android:textColor="@color/on_surface"
+                tools:text="캐시 파일 삭제"/>
+        </LinearLayout>
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
